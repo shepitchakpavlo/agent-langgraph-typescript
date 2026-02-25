@@ -1,5 +1,12 @@
 # Dependencies
 node_modules/
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
 package-lock.json
 
 # Build output
@@ -25,3 +32,6 @@ npm-debug.log*
 
 # TypeScript
 *.tsbuildinfo
+
+# LangGraph API
+.langgraph_api

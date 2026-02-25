@@ -17,7 +17,7 @@ The application uses **LangGraph** to orchestrate two agents:
 ## Building and Running
 
 ### Development
-To run the project in development mode using `ts-node`:
+To start the LangGraph development server:
 ```bash
 yarn dev
 ```
@@ -50,6 +50,7 @@ The `AgentStateAnnotation` defines the shared state:
 - **Edges**: `START` -> `agent1` -> `agent2` -> `END`.
 
 ## Development Conventions
+- **One Function Per File**: Every function MUST be created in its own separate file to prevent "monster files" and ensure high modularity.
 - **State Reducers**: The `messages` state uses a reducer to concatenate new messages to the existing history.
 - **Environment Variables**: API keys and base URLs are managed via a `.env` file (processed by `dotenv`).
 - **Modern LangGraph API**: Uses the `Annotation.Root` and `Annotation` API for state definition.
