@@ -1,4 +1,4 @@
-# LangGraph Sequential Agents
+# Agent LangGraph TypeScript
 
 A simple TypeScript application demonstrating LangGraph with two sequential agents.
 
@@ -19,7 +19,7 @@ This application showcases a basic LangGraph workflow with two agents that run s
 
 1. Navigate to the project directory:
    ```bash
-   cd langgraph-sequential-agents
+   cd agent-langgraph-typescript
    ```
 
 2. Install dependencies:
@@ -53,7 +53,7 @@ The application will:
 ## Project Structure
 
 ```
-langgraph-sequential-agents/
+agent-langgraph-typescript/
 ├── src/
 │   └── index.ts          # Main application code
 ├── .env                  # API keys (copied from project)

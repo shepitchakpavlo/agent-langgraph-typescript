@@ -322,9 +322,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"langgraph-sequential-agents@workspace:.":
+"agent-langgraph-typescript@workspace:.":
   version: 0.0.0-use.local
-  resolution: "langgraph-sequential-agents@workspace:."
+  resolution: "agent-langgraph-typescript@workspace:."
   dependencies:
     "@langchain/core": "npm:^1.1.27"
     "@langchain/langgraph": "npm:^1.1.5"

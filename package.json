@@ -1,5 +1,5 @@
 {
-  "name": "langgraph-sequential-agents",
+  "name": "agent-langgraph-typescript",
   "version": "1.0.0",
   "description": "Simple LangGraph TypeScript application with two sequential agents",
   "main": "dist/index.js",
