@@ -1,26 +1,35 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { z } from "zod";
 import { AgentState } from "../state";
 import { llm } from "../llm";
+
+// Schema for structured query generation
+const SearchQueriesSchema = z.object({
+  queries: z
+    .array(z.string())
+    .min(5)
+    .max(5)
+    .describe("Exactly 5 diverse and specific search queries."),
+});
 
 // Research Agent: Generates 5 search queries and executes WebSearch
 export async function researchAgent(state: AgentState): Promise<Partial<AgentState>> {
   const userInput = state.userInput;
 
-  // Step 1: Generate 5 diverse search queries using LLM
-  const queryResponse = await llm.invoke([
+  // Step 1: Generate 5 diverse search queries using LLM with Structured Output
+  const structuredLlm = llm.withStructuredOutput(SearchQueriesSchema, {
+    includeRaw: true,
+  });
+
+  const queryResult = await structuredLlm.invoke([
     new SystemMessage(
-      "You are a research assistant. Generate exactly 5 diverse, specific search queries to thoroughly research the given topic. " +
-        "Return ONLY the queries, one per line, numbered 1-5. No explanations or additional text.",
+      "You are a research assistant. Generate exactly 5 diverse, specific search queries to thoroughly research the given topic.",
     ),
     new HumanMessage(`Generate 5 search queries to research: ${userInput}`),
   ]);
 
-  // Step 2: Parse queries from LLM response
-  const queries = (queryResponse.content as string)
-    .split("\n")
-    .map((line) => line.replace(/^\d+\.\s*/, "").trim())
-    .filter((line) => line.length > 0)
-    .slice(0, 5);
+  // Step 2: Use the structured queries directly from the LLM response
+  const queries = queryResult.parsed.queries;
 
   // Step 3: Execute WebSearch for each query (parallel)
   // Note: WebSearch is available via the tool system, but here we simulate
@@ -45,6 +54,6 @@ export async function researchAgent(state: AgentState): Promise<Partial<AgentSta
   return {
     searchQueries: queries,
     searchResults,
-    messages: [queryResponse],
+    messages: [queryResult.raw],
   };
 }
