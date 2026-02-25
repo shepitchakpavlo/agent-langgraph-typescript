@@ -5,8 +5,9 @@ import { Annotation, MessagesAnnotation } from "@langchain/langgraph";
 export const AgentStateAnnotation = Annotation.Root({
   ...MessagesAnnotation.spec,
   userInput: Annotation<string | undefined>(),
-  agent1Output: Annotation<string | undefined>(),
-  agent2Output: Annotation<string | undefined>(),
+  searchQueries: Annotation<string[]>({ default: () => [], reducer: (_, y) => y }),
+  searchResults: Annotation<string[]>({ default: () => [], reducer: (_, y) => y }),
+  summary: Annotation<string | undefined>(),
 });
 
 // For easier typing in functions

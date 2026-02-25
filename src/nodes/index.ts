@@ -1,2 +1,2 @@
-export * from "./agent1";
-export * from "./agent2";
+export * from "./researchAgent";
+export * from "./summarizationAgent";
