@@ -1,9 +1,10 @@
 import "dotenv/config";
 import { ChatOpenAI } from "@langchain/openai";
 
-// Initialize the LLM with OpenRouter (uses google/gemini-2.0-flash-lite-001 - cheap model)
+// Initialize the LLM with OpenRouter. 
+// Using openai/gpt-4o-mini as it provides robust tool-calling support.
 export const llm = new ChatOpenAI({
-  model: "google/gemini-2.0-flash-lite-001",
+  model: "openai/gpt-4o-mini",
   temperature: 0,
   configuration: {
     apiKey: process.env.OPENROUTER_API_KEY,

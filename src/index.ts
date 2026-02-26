@@ -3,38 +3,58 @@ import { app } from "./graph";
 
 // Run the application
 async function main() {
-  console.log("🔍 Starting LangGraph Research Agent\n");
+  console.log("🔍 Starting LangGraph Research Agent (Modern Features)\n");
   console.log("=".repeat(50));
 
   const initialState = {
-    messages: [] as never[],
     userInput: "the latest developments in quantum computing",
-    searchQueries: [] as string[],
-    searchResults: [] as string[],
-    summary: "",
+    messages: [],
+    searchQueries: [],
+    searchResults: [],
+    summary: undefined,
+  };
+
+  const config = {
+    configurable: { thread_id: "research-123" },
   };
 
   console.log(`\n📝 Research Topic: "${initialState.userInput}"\n`);
 
   try {
-    const result = await app.invoke(initialState);
+    // Invoke the graph with the initial state and thread configuration
+    const result = await app.invoke(initialState, config);
 
-    console.log("🔎 Search Queries Generated:");
-    result.searchQueries.forEach((query, i) => {
-      console.log(`   ${i + 1}. ${query}`);
-    });
-    console.log();
+    // console.log("DEBUG: All Messages:", JSON.stringify(result.messages, null, 2));
 
-    console.log("📚 Search Results:");
+    console.log("📚 Tools Used:");
     console.log("-".repeat(40));
-    result.searchResults.forEach((res) => {
-      console.log(res);
-      console.log("-".repeat(40));
+    result.messages.forEach((msg: any) => {
+      // Use _getType() or check for ToolMessage properties to avoid instanceof issues
+      const isToolMessage = msg._getType?.() === "tool" || msg.tool_call_id !== undefined;
+      const hasToolCalls = msg.tool_calls && msg.tool_calls.length > 0;
+
+      if (isToolMessage) {
+        console.log(`[Tool Response] Content: ${msg.content.slice(0, 150)}...`);
+      } else if (hasToolCalls) {
+        msg.tool_calls.forEach((tc: any) => {
+          console.log(`[Tool Call] Name: ${tc.name}, Args: ${JSON.stringify(tc.args)}`);
+        });
+      }
     });
+    console.log("-".repeat(40));
     console.log();
 
-    console.log("📋 Research Summary:");
-    console.log(`   ${result.summary}\n`);
+    console.log("📋 Research Summary (Structured):");
+    if (result.summary) {
+      console.log(`   TITLE: ${result.summary.title}`);
+      console.log(`   INSIGHTS:`);
+      result.summary.mainInsights.forEach((insight: string, i: number) => {
+        console.log(`     ${i + 1}. ${insight}`);
+      });
+      console.log(`   CONCLUSIONS: ${result.summary.conclusions}\n`);
+    } else {
+      console.log("   [No summary generated]");
+    }
 
     console.log("=".repeat(50));
     console.log("✅ Research completed successfully!");

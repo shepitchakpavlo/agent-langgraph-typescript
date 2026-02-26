@@ -1,59 +1,27 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
-import { z } from "zod";
 import { AgentState } from "../state";
 import { llm } from "../llm";
+import { webSearch } from "../tools/webSearch";
 
-// Schema for structured query generation
-const SearchQueriesSchema = z.object({
-  queries: z
-    .array(z.string())
-    .min(5)
-    .max(5)
-    .describe("Exactly 5 diverse and specific search queries."),
-});
-
-// Research Agent: Generates 5 search queries and executes WebSearch
+// Research Agent: Decides which search queries to execute using the WebSearch tool
 export async function researchAgent(state: AgentState): Promise<Partial<AgentState>> {
   const userInput = state.userInput;
 
-  // Step 1: Generate 5 diverse search queries using LLM with Structured Output
-  const structuredLlm = llm.withStructuredOutput(SearchQueriesSchema, {
-    includeRaw: true,
-  });
+  // Bind the webSearch tool to the LLM
+  const llmWithTools = llm.bindTools([webSearch]);
 
-  const queryResult = await structuredLlm.invoke([
+  const response = await llmWithTools.invoke([
     new SystemMessage(
-      "You are a research assistant. Generate exactly 5 diverse, specific search queries to thoroughly research the given topic.",
+      "You are a research assistant. You MUST use the 'web_search' tool to research the given topic. " +
+        "Perform at least 3 separate, specific searches to gather real-time factual information. " +
+        "Only after you have the search results should you proceed. " +
+        "Always start by calling the tool with at least one query.",
     ),
-    new HumanMessage(`Generate 5 search queries to research: ${userInput}`),
+    ...state.messages,
+    new HumanMessage(`Research this topic: ${userInput}`),
   ]);
 
-  // Step 2: Use the structured queries directly from the LLM response
-  const queries = queryResult.parsed.queries;
-
-  // Step 3: Execute WebSearch for each query (parallel)
-  // Note: WebSearch is available via the tool system, but here we simulate
-  // by using the LLM to generate mock research results for demonstration
-  const searchResults: string[] = [];
-
-  for (const query of queries) {
-    try {
-      const searchResponse = await llm.invoke([
-        new SystemMessage(
-          "You are a research assistant. Provide a brief factual summary (2-3 sentences) about the search query. " +
-            "Include key facts, statistics, or relevant information.",
-        ),
-        new HumanMessage(`Search query: ${query}`),
-      ]);
-      searchResults.push(`Query: ${query}\nResult: ${searchResponse.content as string}`);
-    } catch (error) {
-      searchResults.push(`Query: ${query}\nResult: [Search failed]`);
-    }
-  }
-
   return {
-    searchQueries: queries,
-    searchResults,
-    messages: [queryResult.raw],
+    messages: [response],
   };
 }

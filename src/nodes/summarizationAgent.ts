@@ -1,22 +1,25 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { AgentState } from "../state";
 import { llm } from "../llm";
+import { ResearchSummarySchema } from "../schemas/researchSummary";
 
-// Summarization Agent: Synthesizes all search results into a comprehensive summary
+// Summarization Agent: Synthesizes all research results into a structured summary
 export async function summarizationAgent(state: AgentState): Promise<Partial<AgentState>> {
-  const allResults = state.searchResults.join("\n\n---\n\n");
+  // Use structured output for the summary
+  const structuredLlm = llm.withStructuredOutput(ResearchSummarySchema);
 
-  const response = await llm.invoke([
+  // The state contains all messages (history), including tool results.
+  // We can pass the whole history to the summarizer.
+  const response = await structuredLlm.invoke([
     new SystemMessage(
-      "You are a research summarizer. Create a comprehensive, well-organized summary of the research findings. " +
-        "Structure your summary with key insights, main points, and conclusions. " +
-        "Be concise but thorough.",
+      "You are a research summarizer. Based on the search results gathered, create a comprehensive, well-organized summary. " +
+        "Synthesize all key findings into the structured format provided.",
     ),
-    new HumanMessage(`Summarize the following research findings:\n\n${allResults}`),
+    ...state.messages,
+    new HumanMessage("Summarize the research findings based on all tool outputs."),
   ]);
 
   return {
-    summary: response.content as string,
-    messages: [response],
+    summary: response,
   };
 }
