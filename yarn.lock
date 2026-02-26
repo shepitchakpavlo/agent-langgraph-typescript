@@ -743,6 +743,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@langchain/tavily@npm:^1.2.0":
+  version: 1.2.0
+  resolution: "@langchain/tavily@npm:1.2.0"
+  dependencies:
+    zod: "npm:^3.25.76 || ^4"
+  peerDependencies:
+    "@langchain/core": ^1.0.0
+  checksum: 10c0/054801d9bd581fd414066858d529a2ef03d88685111eb4a09a11d91a7640ba790ad907912c1fb0c3c70cfceb8379af53489534131403f302916ef185f88a81c5
+  languageName: node
+  linkType: hard
+
 "@napi-rs/wasm-runtime@npm:^1.1.1":
   version: 1.1.1
   resolution: "@napi-rs/wasm-runtime@npm:1.1.1"
@@ -1107,6 +1118,7 @@ __metadata:
     "@langchain/langgraph": "npm:^1.1.5"
     "@langchain/langgraph-cli": "npm:^1.1.13"
     "@langchain/openai": "npm:^1.2.9"
+    "@langchain/tavily": "npm:^1.2.0"
     "@types/node": "npm:^20.11.0"
     dotenv: "npm:^17.3.1"
     langchain: "npm:^1.2.26"

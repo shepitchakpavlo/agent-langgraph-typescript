@@ -6,8 +6,6 @@ import { ResearchSummary } from "./schemas/researchSummary";
 export const AgentStateAnnotation = Annotation.Root({
   ...MessagesAnnotation.spec,
   userInput: Annotation<string | undefined>(),
-  searchQueries: Annotation<string[]>({ default: () => [], reducer: (_, y) => y }),
-  searchResults: Annotation<string[]>({ default: () => [], reducer: (_, y) => y }),
   summary: Annotation<ResearchSummary | undefined>(),
 });
 

@@ -9,8 +9,6 @@ async function main() {
   const initialState = {
     userInput: "the latest developments in quantum computing",
     messages: [],
-    searchQueries: [],
-    searchResults: [],
     summary: undefined,
   };
 
