@@ -6,8 +6,10 @@ async function main() {
   console.log("🔍 Starting LangGraph Research Agent (Modern Features)\n");
   console.log("=".repeat(50));
 
+  const userInput = process.argv.slice(2).join(" ") || "the architecture of the Llama-3 model";
+
   const initialState = {
-    userInput: "the latest developments in quantum computing",
+    userInput: userInput,
     messages: [],
     summary: undefined,
   };

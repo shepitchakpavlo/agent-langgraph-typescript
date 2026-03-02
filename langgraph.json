@@ -7,5 +7,12 @@
   },
   "dependencies": [
     "."
-  ]
+  ],
+  "examples": {
+    "agent": {
+      "Research LangGraph": {
+        "userInput": "Explain the benefits of LangGraph for multi-agent systems."
+      }
+    }
+  }
 }

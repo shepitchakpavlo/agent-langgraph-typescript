@@ -3,9 +3,11 @@ import { ToolNode, toolsCondition } from "@langchain/langgraph/prebuilt";
 import { AgentStateAnnotation } from "./state";
 import { researchAgent, summarizationAgent } from "./nodes";
 import { webSearch } from "./tools/webSearch";
+import { queryMemoryTool } from "./tools/queryMemory";
+import { saveMemoryTool } from "./tools/saveMemory";
 
-// Initialize the tool node with our search tool
-const toolNode = new ToolNode([webSearch]);
+// Initialize the tool node with our search and memory tools
+const toolNode = new ToolNode([webSearch, queryMemoryTool, saveMemoryTool]);
 
 // Define the workflow using the state annotation
 export const workflow = new StateGraph(AgentStateAnnotation)

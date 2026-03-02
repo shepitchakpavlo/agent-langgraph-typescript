@@ -13,7 +13,7 @@ The application uses **LangGraph** to orchestrate a research workflow:
 - **LangGraph (@langchain/langgraph)**: Orchestration framework.
 - **LangChain (@langchain/openai, @langchain/core)**: Used for LLM interaction and message schemas.
 - **Tavily (@langchain/tavily)**: Used for real-time web search.
-- **OpenRouter**: Used as the API gateway to access `openai/gpt-4o-mini`.
+- **OpenRouter**: Used as the API gateway to access `openai/gpt-4o-mini` for the LLM and `google/gemini-embedding-001` for vector embeddings (configured via `OPENROUTER_API_KEY`).
 - **Yarn PnP**: The project uses Yarn Plug'n'Play for dependency management.
 
 ## Building and Running

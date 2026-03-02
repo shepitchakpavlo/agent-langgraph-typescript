@@ -5,7 +5,10 @@ import { ResearchSummary } from "./schemas/researchSummary";
 // This ensures it is correctly recognized by LangGraph Studio's "Chat" mode.
 export const AgentStateAnnotation = Annotation.Root({
   ...MessagesAnnotation.spec,
-  userInput: Annotation<string | undefined>(),
+  userInput: Annotation<string | undefined>({
+    default: () => "Explain the benefits of LangGraph for multi-agent systems.",
+    reducer: (old, newVal) => newVal ?? old,
+  }),
   summary: Annotation<ResearchSummary | undefined>(),
 });
 

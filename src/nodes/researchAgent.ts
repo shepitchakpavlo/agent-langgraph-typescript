@@ -2,26 +2,39 @@ import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { AgentState } from "../state";
 import { llm } from "../llm";
 import { webSearch } from "../tools/webSearch";
+import { queryMemoryTool } from "../tools/queryMemory";
+import { saveMemoryTool } from "../tools/saveMemory";
 
-// Research Agent: Decides which search queries to execute using the WebSearch tool
+// Research Agent: Decides which tools to execute using WebSearch and Memory tools
 export async function researchAgent(state: AgentState): Promise<Partial<AgentState>> {
   const userInput = state.userInput;
 
-  // Bind the webSearch tool to the LLM
-  const llmWithTools = llm.bindTools([webSearch]);
+  // Bind the tools to the LLM
+  const llmWithTools = llm.bindTools([webSearch, queryMemoryTool, saveMemoryTool]);
+
+  // Check if we already have the initial human message in history
+  const hasHumanMessage = state.messages.some((msg: any) => 
+    msg._getType?.() === "human" || msg.type === "human" || msg._getType === "human"
+  );
+  
+  const inputMessages = hasHumanMessage ? [] : [new HumanMessage(`Research this topic: ${userInput}`)];
 
   const response = await llmWithTools.invoke([
     new SystemMessage(
-      "You are a research assistant. You MUST use the 'web_search' tool to research the given topic. " +
-        "Perform at least 3 separate, specific searches to gather real-time factual information. " +
-        "Only after you have the search results should you proceed. " +
-        "Always start by calling the tool with at least one query.",
+      "You are a research assistant with access to long-term memory and real-time web search. " +
+        "Follow this strategy:\n" +
+        "1. **Check Memory First**: Use 'query_memory' to see if you already have information on the topic.\n" +
+        "2. **Search Web if Needed**: If memory is insufficient or outdated, use 'web_search' to gather more info.\n" +
+        "3. **Synthesize**: Combine info from memory and web search.\n" +
+        "4. **Save Key Findings**: Use 'save_to_memory' to store high-quality, verified findings that would be useful in the future.\n" +
+        "Always perform at least one query (either memory or web) before concluding. " +
+        "If you find sufficient info in memory, you don't have to use web search.",
     ),
     ...state.messages,
-    new HumanMessage(`Research this topic: ${userInput}`),
+    ...inputMessages,
   ]);
 
   return {
-    messages: [response],
+    messages: [...inputMessages, response],
   };
 }
