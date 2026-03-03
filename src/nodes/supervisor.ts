@@ -19,9 +19,13 @@ export async function supervisor(state: AgentState): Promise<Partial<AgentState>
   const response = await structuredLlm.invoke([
     new SystemMessage(
       "You are a supervisor tasked with managing a research workflow. " +
-      "Your job is to decide which expert should act next based on the conversation history. " +
-      "If you have enough information to provide a final summary, select 'FINISH'. " +
-      "Otherwise, select the most appropriate expert to continue the task."
+      "Your job is to coordinate a sequence of experts to fulfill the user's request. " +
+      "Follow this strict linear process:\n" +
+      "1. **Research**: If the conversation doesn't contain sufficient research results yet, call 'researchAgent' to gather information.\n" +
+      "2. **Analysis**: Once the researcher has finished gathering data, call 'analystAgent' to synthesize the findings.\n" +
+      "3. **Writing**: Once the analyst has provided a synthesis, call 'writerAgent' to create the final Markdown report.\n" +
+      "4. **Finish**: Once the writer has provided the final report, select 'FINISH'.\n\n" +
+      "Always call the next expert in the sequence. Do not skip steps. Base your decision on the messages in the conversation history."
     ),
     ...state.messages,
   ]);

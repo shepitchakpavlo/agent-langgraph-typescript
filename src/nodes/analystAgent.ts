@@ -1,4 +1,4 @@
-import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { AgentState } from "../state";
 import { llm } from "../llm";
 import { ResearchSummarySchema } from "../schemas/researchSummary";
@@ -22,5 +22,6 @@ export async function analystAgent(state: AgentState): Promise<Partial<AgentStat
 
   return {
     synthesis: response,
+    messages: [new AIMessage("Analysis complete. I have synthesized the research data into a structured summary.")],
   };
 }

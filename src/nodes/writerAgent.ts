@@ -1,4 +1,4 @@
-import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { AgentState } from "../state";
 import { llm } from "../llm";
 
@@ -24,7 +24,10 @@ ${synthesisJson}`
     ),
   ]);
 
+  const report = response.content.toString();
+
   return {
-    finalReport: response.content.toString(),
+    finalReport: report,
+    messages: [new AIMessage(`Report complete:\n\n${report}`)],
   };
 }
