@@ -4,7 +4,7 @@ import { llm } from "../llm";
 import { ResearchSummarySchema } from "../schemas/researchSummary";
 
 // Summarization Agent: Synthesizes all research results into a structured summary
-export async function summarizationAgent(state: AgentState): Promise<Partial<AgentState>> {
+export async function analystAgent(state: AgentState): Promise<Partial<AgentState>> {
   // Use structured output for the summary
   const structuredLlm = llm.withStructuredOutput(ResearchSummarySchema);
 

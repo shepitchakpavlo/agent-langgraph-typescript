@@ -1,36 +1,50 @@
 import "dotenv/config";
-import { app } from "./graph";
+import { Client } from "@langchain/langgraph-sdk";
 
 // Run the application
 async function main() {
-  console.log("🔍 Starting LangGraph Research Agent (Modern Features)\n");
+  console.log("🔍 Starting LangGraph Research Agent (Remote CLI Mode)\n");
   console.log("=".repeat(50));
 
   const userInput = process.argv.slice(2).join(" ") || "the architecture of the Llama-3 model";
+  const threadId = `cli-run-${Date.now()}`;
+  
+  // Connect to the local LangGraph Studio server
+  const client = new Client({
+    apiUrl: "http://localhost:2024",
+  });
 
-  const initialState = {
-    userInput: userInput,
-    messages: [],
-    summary: undefined,
-  };
-
-  const config = {
-    configurable: { thread_id: "research-123" },
-  };
-
-  console.log(`\n📝 Research Topic: "${initialState.userInput}"\n`);
+  console.log(`\n📝 Research Topic: "${userInput}"`);
+  console.log(`🆔 Thread ID: "${threadId}"\n`);
 
   try {
-    // Invoke the graph with the initial state and thread configuration
-    const result = await app.invoke(initialState, config);
+    // Get the assistant ID for our 'agent' graph
+    const assistants = await client.assistants.search({
+      metadata: { graph_id: "agent" },
+    });
+    
+    if (assistants.length === 0) {
+      throw new Error("No assistant found for graph 'agent'. Is 'yarn dev' running?");
+    }
+    const assistantId = assistants[0].assistant_id;
 
-    // console.log("DEBUG: All Messages:", JSON.stringify(result.messages, null, 2));
+    // Invoke the graph remotely via the LangGraph API
+    // This creates a thread that will be visible in the Studio UI
+    const result = (await client.runs.wait(threadId, assistantId, {
+      input: {
+        userInput: userInput,
+        messages: [],
+        summary: undefined,
+      },
+    })) as any;
 
     console.log("📚 Tools Used:");
     console.log("-".repeat(40));
-    result.messages.forEach((msg: any) => {
-      // Use _getType() or check for ToolMessage properties to avoid instanceof issues
-      const isToolMessage = msg._getType?.() === "tool" || msg.tool_call_id !== undefined;
+    
+    // The result from the SDK is the state values
+    const messages = result.messages || [];
+    messages.forEach((msg: any) => {
+      const isToolMessage = msg.type === "tool" || msg.tool_call_id !== undefined;
       const hasToolCalls = msg.tool_calls && msg.tool_calls.length > 0;
 
       if (isToolMessage) {
@@ -57,9 +71,10 @@ async function main() {
     }
 
     console.log("=".repeat(50));
-    console.log("✅ Research completed successfully!");
+    console.log("✅ Research completed and thread visible in Studio!");
   } catch (error) {
     console.error("❌ Error during execution:", error);
+    console.log("\n💡 Make sure you have 'yarn dev' running in another terminal!");
   }
 }
 

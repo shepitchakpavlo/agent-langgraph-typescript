@@ -1,7 +1,7 @@
 import { StateGraph, END, START, MemorySaver } from "@langchain/langgraph";
 import { ToolNode, toolsCondition } from "@langchain/langgraph/prebuilt";
-import { AgentStateAnnotation } from "./state";
-import { researchAgent, summarizationAgent } from "./nodes";
+import { AgentStateAnnotation, NODES, AGENTS } from "./state";
+import { researchAgent, analystAgent, supervisor } from "./nodes";
 import { webSearch } from "./tools/webSearch";
 import { queryMemoryTool } from "./tools/queryMemory";
 import { saveMemoryTool } from "./tools/saveMemory";
@@ -11,31 +11,43 @@ const toolNode = new ToolNode([webSearch, queryMemoryTool, saveMemoryTool]);
 
 // Define the workflow using the state annotation
 export const workflow = new StateGraph(AgentStateAnnotation)
-  // Add nodes
-  .addNode("researchAgent", researchAgent)
-  .addNode("tools", toolNode)
-  .addNode("summarizationAgent", summarizationAgent)
+  // Add nodes using central constants
+  .addNode(NODES.SUPERVISOR, supervisor)
+  .addNode(NODES.RESEARCHER, researchAgent)
+  .addNode(NODES.TOOLS, toolNode)
+  .addNode(NODES.ANALYST, analystAgent)
 
-  // Set entry point
-  .addEdge(START, "researchAgent")
+  // Set entry point to the supervisor
+  .addEdge(START, NODES.SUPERVISOR)
 
-  // Add conditional edges based on tool calls from researchAgent
+  // Supervisor decides what to do next
   .addConditionalEdges(
-    "researchAgent",
-    toolsCondition,
+    NODES.SUPERVISOR,
+    (state) => state.next,
     {
-      tools: "tools",
-      [END]: "summarizationAgent"
+      [NODES.RESEARCHER]: NODES.RESEARCHER,
+      [NODES.ANALYST]: NODES.ANALYST,
+      FINISH: END,
     }
   )
 
-  // After tools execute, route back to researchAgent to see if more research is needed
-  .addEdge("tools", "researchAgent")
+  // Add conditional edges from researchAgent to tools or back to supervisor
+  .addConditionalEdges(
+    NODES.RESEARCHER,
+    toolsCondition,
+    {
+      [NODES.TOOLS]: NODES.TOOLS,
+      [END]: NODES.SUPERVISOR // Returns to supervisor if no tools are called
+    }
+  )
 
-  // SummarizationAgent completes the research
-  .addEdge("summarizationAgent", END);
+  // After tools execute, route back to researchAgent
+  .addEdge(NODES.TOOLS, NODES.RESEARCHER)
 
-// Compile the graph with a MemorySaver checkpointer for persistence and human-in-the-loop
+  // After analystAgent, route back to supervisor to decide if complete
+  .addEdge(NODES.ANALYST, NODES.SUPERVISOR);
+
+// Compile the graph
 export const app = workflow.compile({
   checkpointer: new MemorySaver(),
 });

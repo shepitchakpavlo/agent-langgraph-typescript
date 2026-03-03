@@ -1157,6 +1157,29 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@langchain/langgraph-sdk@npm:^1.6.5":
+  version: 1.6.5
+  resolution: "@langchain/langgraph-sdk@npm:1.6.5"
+  dependencies:
+    "@types/json-schema": "npm:^7.0.15"
+    p-queue: "npm:^9.0.1"
+    p-retry: "npm:^7.1.1"
+    uuid: "npm:^13.0.0"
+  peerDependencies:
+    "@langchain/core": ^1.1.16
+    react: ^18 || ^19
+    react-dom: ^18 || ^19
+  peerDependenciesMeta:
+    "@langchain/core":
+      optional: true
+    react:
+      optional: true
+    react-dom:
+      optional: true
+  checksum: 10c0/f42d1c9d9e6d7c7c33557aa7c27bb5cb0f9a86a663545ae947bfb47b320f7a1d80b4d64f4aa0cf26f946ed05c458a61bf0213691363c6aea856714798cf8ee31
+  languageName: node
+  linkType: hard
+
 "@langchain/langgraph-sdk@npm:~2.0.0":
   version: 2.0.0
   resolution: "@langchain/langgraph-sdk@npm:2.0.0"
@@ -1925,6 +1948,7 @@ __metadata:
     "@langchain/core": "npm:^1.1.27"
     "@langchain/langgraph": "npm:^1.1.5"
     "@langchain/langgraph-cli": "npm:^1.1.14"
+    "@langchain/langgraph-sdk": "npm:^1.6.5"
     "@langchain/openai": "npm:^1.2.10"
     "@langchain/tavily": "npm:^1.2.0"
     "@types/node": "npm:^20.11.0"
