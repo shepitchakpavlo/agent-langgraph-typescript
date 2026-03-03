@@ -14,7 +14,7 @@ export const NODES = {
   TOOLS: "tools",
 } as const;
 
-export const ROUTING_OPTIONS = ["FINISH", ...Object.values(AGENTS)] as const;
+export const ROUTING_OPTIONS = ["FINISH", NODES.SUPERVISOR, ...Object.values(AGENTS)] as const;
 export type RoutingOption = (typeof ROUTING_OPTIONS)[number];
 
 // Define the state using MessagesAnnotation.extend (modern LangGraph API)
@@ -22,7 +22,7 @@ export type RoutingOption = (typeof ROUTING_OPTIONS)[number];
 export const AgentStateAnnotation = Annotation.Root({
   ...MessagesAnnotation.spec,
   // Full conversation history is already in messages (from MessagesAnnotation)
-  
+
   // Array of raw facts/snippets gathered by the Researcher.
   researchData: Annotation<string[]>({
     default: () => [],
@@ -38,17 +38,19 @@ export const AgentStateAnnotation = Annotation.Root({
   // Status flag (pending/verified/failed) from the Fact-Checker (omitted as per user request if preferred, but including for "data structure" completeness)
   verificationStatus: Annotation<"pending" | "verified" | "failed">({
     default: () => "pending",
-    reducer: (old, newVal) => newVal,
+    reducer: (_, newVal) => newVal,
   }),
 
   // Routing instruction for the Graph.
   nextAgent: Annotation<RoutingOption>({
     default: () => NODES.SUPERVISOR,
+    reducer: (_, newVal) => newVal,
   }),
 
   // Original userInput if needed as a helper
-  userInput: Annotation<string | undefined>({
-    default: () => "Explain the benefits of LangGraph for multi-agent systems.",
+  userInput: Annotation<string>({
+    default: () => "the architecture of the Llama-3 model",
+    reducer: (_, newVal) => newVal,
   }),
 });
 

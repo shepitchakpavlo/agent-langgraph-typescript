@@ -6,7 +6,7 @@ async function main() {
   console.log("🔍 Starting LangGraph Research Agent (Remote CLI Mode)\n");
   console.log("=".repeat(50));
 
-  const userInput = process.argv.slice(2).join(" ") || "the architecture of the Llama-3 model";
+  const userInput = process.argv.slice(2).join(" ");
   const threadId = `cli-run-${Date.now()}`;
   
   // Connect to the local LangGraph Studio server
@@ -14,7 +14,11 @@ async function main() {
     apiUrl: "http://localhost:2024",
   });
 
-  console.log(`\n📝 Research Topic: "${userInput}"`);
+  if (userInput) {
+    console.log(`\n📝 Research Topic: "${userInput}"`);
+  } else {
+    console.log("\n📝 No research topic provided. Using default from state.");
+  }
   console.log(`🆔 Thread ID: "${threadId}"\n`);
 
   try {
@@ -32,9 +36,9 @@ async function main() {
     // This creates a thread that will be visible in the Studio UI
     const result = (await client.runs.wait(threadId, assistantId, {
       input: {
-        userInput: userInput,
+        ...(userInput ? { userInput } : {}), // Only include if provided via CLI
         messages: [],
-        summary: undefined,
+        synthesis: undefined,
       },
     })) as any;
 
@@ -59,15 +63,15 @@ async function main() {
     console.log();
 
     console.log("📋 Research Summary (Structured):");
-    if (result.summary) {
-      console.log(`   TITLE: ${result.summary.title}`);
+    if (result.synthesis) {
+      console.log(`   TITLE: ${result.synthesis.title}`);
       console.log(`   INSIGHTS:`);
-      result.summary.mainInsights.forEach((insight: string, i: number) => {
+      result.synthesis.mainInsights.forEach((insight: string, i: number) => {
         console.log(`     ${i + 1}. ${insight}`);
       });
-      console.log(`   CONCLUSIONS: ${result.summary.conclusions}\n`);
+      console.log(`   CONCLUSIONS: ${result.synthesis.conclusions}\n`);
     } else {
-      console.log("   [No summary generated]");
+      console.log("   [No synthesis generated]");
     }
 
     console.log("=".repeat(50));
