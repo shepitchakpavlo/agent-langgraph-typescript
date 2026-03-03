@@ -24,7 +24,7 @@ export const workflow = new StateGraph(AgentStateAnnotation)
   // Supervisor decides what to do next
   .addConditionalEdges(
     NODES.SUPERVISOR,
-    (state) => state.next,
+    (state) => state.nextAgent,
     {
       [NODES.RESEARCHER]: NODES.RESEARCHER,
       [NODES.ANALYST]: NODES.ANALYST,

@@ -21,14 +21,34 @@ export type RoutingOption = (typeof ROUTING_OPTIONS)[number];
 // This ensures it is correctly recognized by LangGraph Studio's "Chat" mode.
 export const AgentStateAnnotation = Annotation.Root({
   ...MessagesAnnotation.spec,
+  // Full conversation history is already in messages (from MessagesAnnotation)
+  
+  // Array of raw facts/snippets gathered by the Researcher.
+  researchData: Annotation<string[]>({
+    default: () => [],
+    reducer: (old, newVal) => old.concat(newVal),
+  }),
+
+  // Structured insights/outline created by the Analyst.
+  synthesis: Annotation<ResearchSummary | undefined>(),
+
+  // The polished Markdown output from the Writer.
+  finalReport: Annotation<string | undefined>(),
+
+  // Status flag (pending/verified/failed) from the Fact-Checker (omitted as per user request if preferred, but including for "data structure" completeness)
+  verificationStatus: Annotation<"pending" | "verified" | "failed">({
+    default: () => "pending",
+    reducer: (old, newVal) => newVal,
+  }),
+
+  // Routing instruction for the Graph.
+  nextAgent: Annotation<RoutingOption>({
+    default: () => NODES.SUPERVISOR,
+  }),
+
+  // Original userInput if needed as a helper
   userInput: Annotation<string | undefined>({
     default: () => "Explain the benefits of LangGraph for multi-agent systems.",
-    reducer: (old, newVal) => newVal ?? old,
-  }),
-  summary: Annotation<ResearchSummary | undefined>(),
-  finalReport: Annotation<string | undefined>(),
-  next: Annotation<RoutingOption>({
-    default: () => NODES.SUPERVISOR,
   }),
 });
 

@@ -43,7 +43,19 @@ export async function researchAgent(
     ...inputMessages,
   ]);
 
+  // Extract research data from tool calls if present in the messages after tools run
+  // Note: Since this node returns messages, LangGraph will run toolsCondition and loop.
+  // We'll capture the data in a separate reducer if needed, but for now we'll just return the response.
+  // The actual population of researchData is better done in a post-tool node or by analyzing history.
+  // However, the document says the Researcher "populates with search results".
+  // Let's refine the logic to check if we have any ToolMessages in the state that aren't in researchData yet.
+  
+  const researchSnippets = state.messages
+    .filter((msg: any) => msg.type === "tool" || msg._getType?.() === "tool")
+    .map((msg: any) => msg.content.toString());
+
   return {
     messages: [...inputMessages, response],
+    researchData: researchSnippets, // This will be merged via the concat reducer
   };
 }

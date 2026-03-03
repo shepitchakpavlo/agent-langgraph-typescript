@@ -8,18 +8,19 @@ export async function analystAgent(state: AgentState): Promise<Partial<AgentStat
   // Use structured output for the summary
   const structuredLlm = llm.withStructuredOutput(ResearchSummarySchema);
 
-  // The state contains all messages (history), including tool results.
-  // We can pass the whole history to the summarizer.
+  // The state contains all researchData gathered by the Researcher
+  const researchContext = state.researchData.join("\n\n---\n\n");
+
   const response = await structuredLlm.invoke([
     new SystemMessage(
       "You are a research summarizer. Based on the search results gathered, create a comprehensive, well-organized summary. " +
         "Synthesize all key findings into the structured format provided.",
     ),
     ...state.messages,
-    new HumanMessage("Summarize the research findings based on all tool outputs."),
+    new HumanMessage(`Synthesize the following research data:\n\n${researchContext}`),
   ]);
 
   return {
-    summary: response,
+    synthesis: response,
   };
 }

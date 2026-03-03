@@ -7,7 +7,7 @@ import { llm } from "../llm";
  * It focuses on tone, structure, and clarity.
  */
 export async function writerAgent(state: AgentState): Promise<Partial<AgentState>> {
-  const summaryJson = JSON.stringify(state.summary, null, 2);
+  const synthesisJson = JSON.stringify(state.synthesis, null, 2);
   
   const response = await llm.invoke([
     new SystemMessage(
@@ -18,9 +18,9 @@ export async function writerAgent(state: AgentState): Promise<Partial<AgentState
     ),
     ...state.messages,
     new HumanMessage(
-      `Based on the following research summary, please write the final report:
+      `Based on the following research synthesis, please write the final report:
 
-${summaryJson}`
+${synthesisJson}`
     ),
   ]);
 

@@ -11,7 +11,7 @@ export async function supervisor(state: AgentState): Promise<Partial<AgentState>
   // Define the structured output schema for the supervisor's decision
   // We use the central ROUTING_OPTIONS constant to derive the enum
   const routingSchema = z.object({
-    next: z.enum(ROUTING_OPTIONS).describe("The next agent to act, or FINISH to exit."),
+    nextAgent: z.enum(ROUTING_OPTIONS).describe("The next agent to act, or FINISH to exit."),
   });
 
   const structuredLlm = llm.withStructuredOutput(routingSchema);
@@ -27,6 +27,6 @@ export async function supervisor(state: AgentState): Promise<Partial<AgentState>
   ]);
 
   return {
-    next: response.next,
+    nextAgent: response.nextAgent,
   };
 }
