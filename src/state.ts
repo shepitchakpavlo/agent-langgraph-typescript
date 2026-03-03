@@ -5,6 +5,7 @@ import { ResearchSummary } from "./schemas/researchSummary";
 export const AGENTS = {
   RESEARCHER: "researchAgent",
   ANALYST: "analystAgent",
+  WRITER: "writerAgent",
 } as const;
 
 export const NODES = {
@@ -25,6 +26,7 @@ export const AgentStateAnnotation = Annotation.Root({
     reducer: (old, newVal) => newVal ?? old,
   }),
   summary: Annotation<ResearchSummary | undefined>(),
+  finalReport: Annotation<string | undefined>(),
   next: Annotation<RoutingOption>({
     default: () => NODES.SUPERVISOR,
   }),

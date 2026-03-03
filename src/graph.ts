@@ -1,7 +1,7 @@
 import { StateGraph, END, START, MemorySaver } from "@langchain/langgraph";
 import { ToolNode, toolsCondition } from "@langchain/langgraph/prebuilt";
 import { AgentStateAnnotation, NODES, AGENTS } from "./state";
-import { researchAgent, analystAgent, supervisor } from "./nodes";
+import { researchAgent, analystAgent, supervisor, writerAgent } from "./nodes";
 import { webSearch } from "./tools/webSearch";
 import { queryMemoryTool } from "./tools/queryMemory";
 import { saveMemoryTool } from "./tools/saveMemory";
@@ -16,6 +16,7 @@ export const workflow = new StateGraph(AgentStateAnnotation)
   .addNode(NODES.RESEARCHER, researchAgent)
   .addNode(NODES.TOOLS, toolNode)
   .addNode(NODES.ANALYST, analystAgent)
+  .addNode(NODES.WRITER, writerAgent)
 
   // Set entry point to the supervisor
   .addEdge(START, NODES.SUPERVISOR)
@@ -27,6 +28,7 @@ export const workflow = new StateGraph(AgentStateAnnotation)
     {
       [NODES.RESEARCHER]: NODES.RESEARCHER,
       [NODES.ANALYST]: NODES.ANALYST,
+      [NODES.WRITER]: NODES.WRITER,
       FINISH: END,
     }
   )
@@ -45,7 +47,10 @@ export const workflow = new StateGraph(AgentStateAnnotation)
   .addEdge(NODES.TOOLS, NODES.RESEARCHER)
 
   // After analystAgent, route back to supervisor to decide if complete
-  .addEdge(NODES.ANALYST, NODES.SUPERVISOR);
+  .addEdge(NODES.ANALYST, NODES.SUPERVISOR)
+
+  // After writerAgent, route back to supervisor
+  .addEdge(NODES.WRITER, NODES.SUPERVISOR);
 
 // Compile the graph
 export const app = workflow.compile({
