@@ -50,9 +50,14 @@ export async function researchAgent(
   // However, the document says the Researcher "populates with search results".
   // Let's refine the logic to check if we have any ToolMessages in the state that aren't in researchData yet.
   
-  const researchSnippets = state.messages
-    .filter((msg: any) => msg.type === "tool" || msg._getType?.() === "tool")
-    .map((msg: any) => msg.content.toString());
+  // Extract unique research data from tool calls in history
+  const researchSnippets = Array.from(
+    new Set(
+      state.messages
+        .filter((msg: any) => msg.type === "tool" || msg._getType?.() === "tool")
+        .map((msg: any) => msg.content.toString())
+    )
+  );
 
   return {
     messages: [...inputMessages, response],

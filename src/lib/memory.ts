@@ -5,9 +5,9 @@ import path from "path";
 import fs from "fs";
 
 // Initialize embeddings using OpenRouter
-// Using google/gemini-embedding-001 as it is the current standard high-performance embedding model
+// Using openai/text-embedding-3-small - cheap ($0.02/M tokens), reliable, 1536 dimensions
 const embeddings = new OpenAIEmbeddings({
-  model: "google/gemini-embedding-001",
+  model: "openai/text-embedding-3-small",
   configuration: {
     apiKey: process.env.OPENROUTER_API_KEY,
     baseURL: process.env.OPENROUTER_API_BASE,

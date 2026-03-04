@@ -20,12 +20,15 @@ export async function supervisor(state: AgentState): Promise<Partial<AgentState>
     new SystemMessage(
       "You are a supervisor tasked with managing a research workflow. " +
       "Your job is to coordinate a sequence of experts to fulfill the user's request. " +
-      "Follow this strict linear process:\n" +
-      "1. **Research**: If the conversation doesn't contain sufficient research results yet, call 'researchAgent' to gather information.\n" +
-      "2. **Analysis**: Once the researcher has finished gathering data, call 'analystAgent' to synthesize the findings.\n" +
-      "3. **Writing**: Once the analyst has provided a synthesis, call 'writerAgent' to create the final Markdown report.\n" +
-      "4. **Finish**: Once the writer has provided the final report, select 'FINISH'.\n\n" +
-      "Always call the next expert in the sequence. Do not skip steps. Base your decision on the messages in the conversation history."
+      "Follow this process:\n" +
+      "1. **Research**: If more information is needed, call 'researchAgent'.\n" +
+      "2. **Analysis**: Once research is sufficient, call 'analystAgent' to synthesize findings.\n" +
+      "3. **Writing**: Call 'writerAgent' to generate the final report draft based on the analysis.\n" +
+      "4. **Fact-Checking**: AFTER the 'writerAgent' provides the 'finalReport', call 'factCheckerAgent' to verify it.\n" +
+      "5. **Feedback Loop (CRITICAL)**: If the 'factCheckerAgent' reports errors (status 'failed'), " +
+      "route back to 'researchAgent' or 'analystAgent' to fix the content based on the feedback.\n" +
+      "6. **Finish**: ONLY once the 'factCheckerAgent' has marked the 'finalReport' as 'verified', select 'FINISH'.\n\n" +
+      "Base your decision on the conversation history, the state of 'finalReport', and the 'verificationStatus'."
     ),
     ...state.messages,
   ]);

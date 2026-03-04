@@ -1,11 +1,13 @@
 import { Annotation, MessagesAnnotation } from "@langchain/langgraph";
 import { ResearchSummary } from "./schemas/researchSummary";
+import { FactCheckReport } from "./schemas/factCheckReport";
 
 // Central source of truth for node names to avoid duplication
 export const AGENTS = {
   RESEARCHER: "researchAgent",
   ANALYST: "analystAgent",
   WRITER: "writerAgent",
+  FACT_CHECKER: "factCheckerAgent",
 } as const;
 
 export const NODES = {
@@ -35,11 +37,14 @@ export const AgentStateAnnotation = Annotation.Root({
   // The polished Markdown output from the Writer.
   finalReport: Annotation<string | undefined>(),
 
-  // Status flag (pending/verified/failed) from the Fact-Checker (omitted as per user request if preferred, but including for "data structure" completeness)
+  // Status flag (pending/verified/failed) from the Fact-Checker
   verificationStatus: Annotation<"pending" | "verified" | "failed">({
     default: () => "pending",
     reducer: (_, newVal) => newVal,
   }),
+
+  // Detailed fact-checking report with claim-by-claim verification
+  factCheckReport: Annotation<FactCheckReport | undefined>(),
 
   // Routing instruction for the Graph.
   nextAgent: Annotation<RoutingOption>({

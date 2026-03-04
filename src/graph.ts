@@ -1,7 +1,7 @@
 import { StateGraph, END, START, MemorySaver } from "@langchain/langgraph";
 import { ToolNode, toolsCondition } from "@langchain/langgraph/prebuilt";
-import { AgentStateAnnotation, NODES, AGENTS } from "./state";
-import { researchAgent, analystAgent, supervisor, writerAgent } from "./nodes";
+import { AgentStateAnnotation, NODES } from "./state";
+import { researchAgent, analystAgent, supervisor, writerAgent, factCheckerAgent } from "./nodes";
 import { webSearch } from "./tools/webSearch";
 import { queryMemoryTool } from "./tools/queryMemory";
 import { saveMemoryTool } from "./tools/saveMemory";
@@ -9,16 +9,33 @@ import { saveMemoryTool } from "./tools/saveMemory";
 // Initialize the tool node with our search and memory tools
 const toolNode = new ToolNode([webSearch, queryMemoryTool, saveMemoryTool]);
 
+// Retry policy for LLM nodes (handles rate limits, transient errors)
+const llmRetryPolicy = {
+  maxAttempts: 3,
+  initialDelay: 1000,
+  maxDelay: 10000,
+  backoffMultiplier: 2,
+  retryOn: (e: any): boolean => {
+    // Retry on 5xx errors, rate limits (429), or transient 400s
+    const status = e?.status || e?.statusCode;
+    if (status === 429) return true; // Rate limit
+    if (status && status >= 500) return true; // Server error
+    // Don't retry on 400 (bad request) - those need fixes
+    return false;
+  },
+};
+
 // Define the workflow using the state annotation
 export const workflow = new StateGraph(AgentStateAnnotation)
-  // Add nodes using central constants
-  .addNode(NODES.SUPERVISOR, supervisor)
-  .addNode(NODES.RESEARCHER, researchAgent)
+  // 1. ADD ALL NODES FIRST (Crucial for TypeScript inference)
+  .addNode(NODES.SUPERVISOR, supervisor, { retryPolicy: llmRetryPolicy })
+  .addNode(NODES.RESEARCHER, researchAgent, { retryPolicy: llmRetryPolicy })
   .addNode(NODES.TOOLS, toolNode)
-  .addNode(NODES.ANALYST, analystAgent)
-  .addNode(NODES.WRITER, writerAgent)
+  .addNode(NODES.ANALYST, analystAgent, { retryPolicy: llmRetryPolicy })
+  .addNode(NODES.FACT_CHECKER, factCheckerAgent, { retryPolicy: llmRetryPolicy })
+  .addNode(NODES.WRITER, writerAgent, { retryPolicy: llmRetryPolicy })
 
-  // Set entry point to the supervisor
+  // 2. DEFINE EDGES
   .addEdge(START, NODES.SUPERVISOR)
 
   // Supervisor decides what to do next
@@ -28,12 +45,13 @@ export const workflow = new StateGraph(AgentStateAnnotation)
     {
       [NODES.RESEARCHER]: NODES.RESEARCHER,
       [NODES.ANALYST]: NODES.ANALYST,
+      [NODES.FACT_CHECKER]: NODES.FACT_CHECKER,
       [NODES.WRITER]: NODES.WRITER,
       FINISH: END,
     }
   )
 
-  // Add conditional edges from researchAgent to tools or back to supervisor
+  // Researcher tool loop
   .addConditionalEdges(
     NODES.RESEARCHER,
     toolsCondition,
@@ -42,14 +60,11 @@ export const workflow = new StateGraph(AgentStateAnnotation)
       [END]: NODES.SUPERVISOR // Returns to supervisor if no tools are called
     }
   )
-
-  // After tools execute, route back to researchAgent
   .addEdge(NODES.TOOLS, NODES.RESEARCHER)
 
-  // After analystAgent, route back to supervisor to decide if complete
+  // Linear flow back to supervisor
+  .addEdge(NODES.FACT_CHECKER, NODES.SUPERVISOR)
   .addEdge(NODES.ANALYST, NODES.SUPERVISOR)
-
-  // After writerAgent, route back to supervisor
   .addEdge(NODES.WRITER, NODES.SUPERVISOR);
 
 // Compile the graph

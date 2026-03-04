@@ -1,10 +1,10 @@
 import "dotenv/config";
 import { ChatOpenAI } from "@langchain/openai";
 
-// Initialize the LLM with OpenRouter. 
-// Using openai/gpt-4o-mini as it provides robust tool-calling support.
+// Initialize the LLM with OpenRouter.
+// Using deepseek/deepseek-chat-v3-0324 - open source, excellent tool calling, free tier available
 export const llm = new ChatOpenAI({
-  model: "openai/gpt-4o-mini",
+  model: "deepseek/deepseek-chat-v3-0324",
   temperature: 0,
   configuration: {
     apiKey: process.env.OPENROUTER_API_KEY,
