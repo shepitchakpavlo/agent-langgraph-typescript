@@ -6,6 +6,9 @@ import { FactCheckReportSchema } from "../schemas/factCheckReport";
 /**
  * Fact-Checker Agent: Verifies the final report against research data.
  * Passive auditor role (no external tools).
+ *
+ * On failure, injects actionable HumanMessage with specific claims to fix.
+ * This keeps other agents simple - they just read messages.
  */
 export async function factCheckerAgent(state: AgentState): Promise<Partial<AgentState>> {
   if (!state.finalReport) {
@@ -40,11 +43,52 @@ export async function factCheckerAgent(state: AgentState): Promise<Partial<Agent
       ),
     ]);
 
+    // Separate failures by type - they require different fixes
+    const failedClaims = report.claims.filter(c => c.status === "failed");
+    const unverifiableClaims = report.claims.filter(c => c.status === "unverifiable");
+
+    // Type 1: Writer misused existing data
+    if (failedClaims.length > 0) {
+      const failedClaimsList = failedClaims
+        .map(c => `- **Claim**: "${c.claim}"\n  **Correction**: ${c.correction}`)
+        .join("\n\n");
+
+      return {
+        verificationStatus: "failed",
+        factCheckReport: report,
+        messages: [
+          new HumanMessage(
+            `FACT-CHECK FAILED: ${failedClaims.length} claims contradict the research data.\n\n` +
+            `**Incorrect claims:**\n\n${failedClaimsList}`
+          ),
+        ],
+      };
+    }
+
+    // Type 2: Research gaps - data is missing
+    if (unverifiableClaims.length > 0) {
+      const unverifiableList = unverifiableClaims
+        .map(c => `- "${c.claim}"`)
+        .join("\n");
+
+      return {
+        verificationStatus: "failed",
+        factCheckReport: report,
+        messages: [
+          new HumanMessage(
+            `FACT-CHECK FAILED: ${unverifiableClaims.length} claims cannot be verified - no data found.\n\n` +
+            `**Unverifiable claims:**\n${unverifiableList}`
+          ),
+        ],
+      };
+    }
+
+    // Success case
     return {
-      verificationStatus: report.overallStatus,
+      verificationStatus: "verified",
       factCheckReport: report,
       messages: [
-        new AIMessage(`Fact-check ${report.overallStatus.toUpperCase()}: ${report.summary}`),
+        new AIMessage(`Fact-check PASSED: ${report.summary}`),
       ],
     };
   } catch (error: any) {

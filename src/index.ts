@@ -7,8 +7,7 @@ async function main() {
   console.log("=".repeat(50));
 
   const userInput = process.argv.slice(2).join(" ");
-  const threadId = `cli-run-${Date.now()}`;
-  
+
   // Connect to the local LangGraph Studio server
   const client = new Client({
     apiUrl: "http://localhost:2024",
@@ -19,32 +18,63 @@ async function main() {
   } else {
     console.log("\n📝 No research topic provided. Using default from state.");
   }
-  console.log(`🆔 Thread ID: "${threadId}"\n`);
 
   try {
     // Get the assistant ID for our 'agent' graph
-    const assistants = await client.assistants.search({
-      metadata: { graph_id: "agent" },
-    });
-    
-    if (assistants.length === 0) {
+    // Search all assistants and filter by graph_id (it's a top-level field, not in metadata)
+    const assistants = await client.assistants.search({});
+    const agentAssistant = assistants.find((a: any) => a.graph_id === "agent");
+
+    if (!agentAssistant) {
       throw new Error("No assistant found for graph 'agent'. Is 'yarn dev' running?");
     }
-    const assistantId = assistants[0].assistant_id;
+    const assistantId = agentAssistant.assistant_id;
 
-    // Invoke the graph remotely via the LangGraph API
-    // This creates a thread that will be visible in the Studio UI
-    const result = (await client.runs.wait(threadId, assistantId, {
-      input: {
-        ...(userInput ? { userInput } : {}), // Only include if provided via CLI
-        messages: [],
-        synthesis: undefined,
-      },
-    })) as any;
+    // Create a new thread for this run
+    const thread = await client.threads.create();
+    console.log(`🆔 Thread ID: "${thread.thread_id}"\n`);
+
+    // Stream the run to see progress
+    console.log("🚀 Starting agent execution...\n");
+
+    const streamResponse = client.runs.stream(
+      thread.thread_id,
+      assistantId,
+      {
+        input: {
+          ...(userInput ? { userInput } : {}),
+          messages: [],
+        },
+        streamMode: "updates",
+      }
+    );
+
+    // Process the stream
+    for await (const chunk of streamResponse) {
+      if (chunk.event === "updates") {
+        const data = chunk.data as any;
+        // Print agent transitions
+        if (data.nextAgent) {
+          console.log(`📍 Routing to: ${data.nextAgent}`);
+        }
+        // Print tool calls
+        if (data.tool_calls) {
+          (data.tool_calls as any[]).forEach((tc: any) => {
+            console.log(`🔧 Tool Call: ${tc.name}`);
+          });
+        }
+      }
+    }
+
+    console.log("\n✅ Agent execution completed!\n");
+
+    // Get the final state
+    const state = await client.threads.getState(thread.thread_id);
+    const result = state.values as any;
 
     console.log("📚 Tools Used:");
     console.log("-".repeat(40));
-    
+
     // The result from the SDK is the state values
     const messages = result.messages || [];
     messages.forEach((msg: any) => {
@@ -52,7 +82,8 @@ async function main() {
       const hasToolCalls = msg.tool_calls && msg.tool_calls.length > 0;
 
       if (isToolMessage) {
-        console.log(`[Tool Response] Content: ${msg.content.slice(0, 150)}...`);
+        const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+        console.log(`[Tool Response] ${content.slice(0, 150)}...`);
       } else if (hasToolCalls) {
         msg.tool_calls.forEach((tc: any) => {
           console.log(`[Tool Call] Name: ${tc.name}, Args: ${JSON.stringify(tc.args)}`);
