@@ -1,18 +1,32 @@
 import { LanceDB } from "@langchain/community/vectorstores/lancedb";
 import { OpenAIEmbeddings } from "@langchain/openai";
+import { CacheBackedEmbeddings } from "@langchain/classic/embeddings/cache_backed";
+import { InMemoryStore } from "@langchain/core/stores";
 import { connect } from "@lancedb/lancedb";
 import path from "path";
 import fs from "fs";
 
-// Initialize embeddings using OpenRouter
+// Initialize underlying embeddings using OpenRouter
 // Using openai/text-embedding-3-small - cheap ($0.02/M tokens), reliable, 1536 dimensions
-const embeddings = new OpenAIEmbeddings({
+const underlyingEmbeddings = new OpenAIEmbeddings({
   model: "openai/text-embedding-3-small",
   configuration: {
     apiKey: process.env.OPENROUTER_API_KEY,
     baseURL: process.env.OPENROUTER_API_BASE,
   },
 });
+
+// Cache store for embeddings
+const embeddingsStore = new InMemoryStore();
+
+// Wrap embeddings with caching layer
+const embeddings = CacheBackedEmbeddings.fromBytesStore(
+  underlyingEmbeddings,
+  embeddingsStore,
+  {
+    namespace: "openai/text-embedding-3-small",
+  }
+);
 
 const TABLE_NAME = "agent_memory";
 
