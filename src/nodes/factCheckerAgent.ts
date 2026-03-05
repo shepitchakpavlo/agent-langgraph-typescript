@@ -5,10 +5,7 @@ import { FactCheckReportSchema } from "../schemas/factCheckReport";
 
 /**
  * Fact-Checker Agent: Verifies the final report against research data.
- * Passive auditor role (no external tools).
- *
- * On failure, injects actionable HumanMessage with specific claims to fix.
- * This keeps other agents simple - they just read messages.
+ * Returns ONLY failed/unverifiable claims for smaller LLM responses.
  */
 export async function factCheckerAgent(state: AgentState): Promise<Partial<AgentState>> {
   if (!state.finalReport) {
@@ -18,84 +15,71 @@ export async function factCheckerAgent(state: AgentState): Promise<Partial<Agent
     };
   }
 
-  // Ensure researchContext isn't too large (cap it for safety)
-  // Reduced limits for OpenRouter compatibility
   const researchContext = state.researchData.join("\n\n---\n\n").substring(0, 20000);
   const reportToVerify = state.finalReport.substring(0, 8000);
 
-  // Using tool_calling explicitly as it's generally more robust for arrays
   const structuredLlm = llm.withStructuredOutput(FactCheckReportSchema, {
     name: "fact_check_report",
     strict: false,
   });
 
-  try {
-    const report = await structuredLlm.invoke([
-      new SystemMessage(
-        "You are a meticulous fact-checker. Your ONLY source of truth is the 'RESEARCH DATA' provided. " +
-        "Verify the 'FINAL REPORT' claim by claim. " +
-        "Identify key statistics, facts, and names. If something isn't in the research data, mark it as 'unverifiable'. " +
-        "If something contradicts the research data, mark it as 'failed' and provide the correction."
-      ),
-      new HumanMessage(
-        `RESEARCH DATA:\n${researchContext}\n\n` +
-        `FINAL REPORT:\n${reportToVerify}`
-      ),
-    ]);
+  const report = await structuredLlm.invoke([
+    new SystemMessage(
+      "You are a fact-checker. Verify the FINAL REPORT against the RESEARCH DATA.\n\n" +
+      "Rules:\n" +
+      "- If a claim matches the research data → it's verified (DON'T include it)\n" +
+      "- If a claim CONTRADICTS the research data → status='failed', provide correction\n" +
+      "- If a claim has NO supporting data → status='unverifiable', describe what's missing\n\n" +
+      "ONLY include claims that failed or are unverifiable. If all claims are verified, return verified=true with empty failedClaims array."
+    ),
+    new HumanMessage(
+      `RESEARCH DATA:\n${researchContext}\n\n` +
+      `FINAL REPORT:\n${reportToVerify}`
+    ),
+  ]);
 
-    // Separate failures by type - they require different fixes
-    const failedClaims = report.claims.filter(c => c.status === "failed");
-    const unverifiableClaims = report.claims.filter(c => c.status === "unverifiable");
-
-    // Type 1: Writer misused existing data
-    if (failedClaims.length > 0) {
-      const failedClaimsList = failedClaims
-        .map(c => `- **Claim**: "${c.claim}"\n  **Correction**: ${c.correction}`)
-        .join("\n\n");
-
-      return {
-        verificationStatus: "failed",
-        factCheckReport: report,
-        messages: [
-          new HumanMessage(
-            `FACT-CHECK FAILED: ${failedClaims.length} claims contradict the research data.\n\n` +
-            `**Incorrect claims:**\n\n${failedClaimsList}`
-          ),
-        ],
-      };
-    }
-
-    // Type 2: Research gaps - data is missing
-    if (unverifiableClaims.length > 0) {
-      const unverifiableList = unverifiableClaims
-        .map(c => `- "${c.claim}"`)
-        .join("\n");
-
-      return {
-        verificationStatus: "failed",
-        factCheckReport: report,
-        messages: [
-          new HumanMessage(
-            `FACT-CHECK FAILED: ${unverifiableClaims.length} claims cannot be verified - no data found.\n\n` +
-            `**Unverifiable claims:**\n${unverifiableList}`
-          ),
-        ],
-      };
-    }
-
-    // Success case
+  // Success case - all claims verified
+  if (report.verified || report.failedClaims.length === 0) {
     return {
       verificationStatus: "verified",
       factCheckReport: report,
+      messages: [new AIMessage("Fact-check PASSED: All claims verified.")],
+    };
+  }
+
+  // Separate by failure type
+  const failedClaims = report.failedClaims.filter(c => c.status === "failed");
+  const unverifiableClaims = report.failedClaims.filter(c => c.status === "unverifiable");
+
+  // Type 1: Writer misused existing data
+  if (failedClaims.length > 0) {
+    const failedList = failedClaims
+      .map(c => `- **Claim**: "${c.claim}"\n  **Correction**: ${c.correction}`)
+      .join("\n\n");
+
+    return {
+      verificationStatus: "failed",
+      factCheckReport: report,
       messages: [
-        new AIMessage(`Fact-check PASSED: ${report.summary}`),
+        new HumanMessage(
+          `FACT-CHECK FAILED: ${failedClaims.length} claims contradict the research data.\n\n${failedList}`
+        ),
       ],
     };
-  } catch (error: any) {
-    console.error("Fact-checker LLM call failed:", error);
-    console.error("Error details:", JSON.stringify(error, null, 2));
-
-    // Re-throw to let LangGraph retry policy handle it
-    throw error;
   }
+
+  // Type 2: Research gaps - data is missing
+  const unverifiableList = unverifiableClaims
+    .map(c => `- "${c.claim}" (missing: ${c.correction})`)
+    .join("\n");
+
+  return {
+    verificationStatus: "failed",
+    factCheckReport: report,
+    messages: [
+      new HumanMessage(
+        `FACT-CHECK FAILED: ${unverifiableClaims.length} claims cannot be verified - no data found.\n\n${unverifiableList}`
+      ),
+    ],
+  };
 }
