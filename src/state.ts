@@ -57,6 +57,23 @@ export const AgentStateAnnotation = Annotation.Root({
     default: () => "the architecture of the Llama-3 model",
     reducer: (_, newVal) => newVal,
   }),
+
+  // Attempt counters to prevent infinite loops
+  writerAttempts: Annotation<number>({
+    default: () => 0,
+    reducer: (_, newVal) => newVal,
+  }),
+
+  researcherAttempts: Annotation<number>({
+    default: () => 0,
+    reducer: (_, newVal) => newVal,
+  }),
+
+  // Maximum allowed attempts before forcing completion
+  maxAttempts: Annotation<number>({
+    default: () => 3,
+    reducer: (_, newVal) => newVal,
+  }),
 });
 
 // For easier typing in functions

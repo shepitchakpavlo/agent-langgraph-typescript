@@ -62,5 +62,6 @@ export async function researchAgent(
   return {
     messages: [...inputMessages, response],
     researchData: researchSnippets, // This will be merged via the concat reducer
+    researcherAttempts: state.researcherAttempts + 1,
   };
 }

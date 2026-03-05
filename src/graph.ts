@@ -68,6 +68,7 @@ export const workflow = new StateGraph(AgentStateAnnotation)
   .addEdge(NODES.WRITER, NODES.SUPERVISOR);
 
 // Compile the graph
+// Note: recursionLimit is set at invocation time via the SDK client or .invoke() call
 export const app = workflow.compile({
   checkpointer: new MemorySaver(),
 });

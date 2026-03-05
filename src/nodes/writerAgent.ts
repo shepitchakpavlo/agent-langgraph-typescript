@@ -29,5 +29,6 @@ ${synthesisJson}`
   return {
     finalReport: report,
     messages: [new AIMessage(`Report complete:\n\n${report}`)],
+    writerAttempts: state.writerAttempts + 1,
   };
 }
