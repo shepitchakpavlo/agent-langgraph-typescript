@@ -4,7 +4,7 @@ import { AgentStateAnnotation, NODES } from "./state";
 import { researchAgent, analystAgent, supervisor, writerAgent, factCheckerAgent } from "./nodes";
 import { webSearch } from "./tools/webSearch";
 import { queryMemoryTool } from "./tools/queryMemory";
-import { saveMemoryTool } from "./tools/saveMemory";/
+import { saveMemoryTool } from "./tools/saveMemory";
 
 // Initialize the tool node with our search and memory tools
 const toolNode = new ToolNode([webSearch, queryMemoryTool, saveMemoryTool]);
