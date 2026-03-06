@@ -36,92 +36,131 @@ export function useLangGraphStream({
     setStartTime(new Date());
 
     try {
+      // Create client and thread with 5 second timeout
       const client = new Client({ apiUrl });
-      
-      // Create thread if none provided
-      const thread = threadId
-        ? await client.threads.get(threadId)
-        : await client.threads.create();
-      
+
+      const threadPromise = threadId
+        ? client.threads.get(threadId)
+        : client.threads.create();
+
+      const thread = await Promise.race([
+        threadPromise,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Connection timeout")), 5000)
+        ),
+      ]);
+
       setStatus("active");
-      
+
       // Stream events from LangGraph
-      const streamResponse = await client.runs.stream(
-        thread.thread_id,
-        assistantId,
-        {
-          input,
-          streamMode: ["updates", "messages"],
-        }
-      );
-      
+      const streamResponse = await client.runs.stream(thread.thread_id, assistantId, {
+        input,
+        streamMode: ["updates"],
+      });
+
       for await (const chunk of streamResponse) {
+        // Small delay to allow React/Ink to re-render between updates
+        // This prevents the async iterator from blocking the render cycle
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
         if (chunk.event === "updates") {
           const data = chunk.data as Record<string, unknown>;
-          
-          // Agent routing events
-          if (data.nextAgent) {
-            setEvents(prev => [
-              ...prev,
-              {
-                type: "agent",
-                content: `Routing to ${data.nextAgent as string}`,
-                timestamp: new Date().toISOString(),
-              },
-            ]);
-          }
-          
-          // Tool call events
-          if (data.tool_calls) {
-            const toolCalls = data.tool_calls as Array<{
-              name: string;
-            }>;
-            toolCalls.forEach((tc) => {
-              setEvents(prev => [
+
+          // LangGraph stream structure: { nodeName: { messages: [...], ...state updates } }
+          for (const [nodeName, nodeOutput] of Object.entries(data)) {
+            if (!nodeOutput || typeof nodeOutput !== "object") continue;
+
+            const output = nodeOutput as Record<string, unknown>;
+
+            // Handle supervisor routing decisions
+            if (output.nextAgent) {
+              setEvents((prev) => [
                 ...prev,
                 {
-                  type: "tool",
-                  content: `${tc.name}: executed`,
+                  type: "agent",
+                  content: `Routing to: ${output.nextAgent as string}`,
                   timestamp: new Date().toISOString(),
                 },
               ]);
-            });
+            }
+
+            // Handle tool results
+            if (nodeName === "tools" && output.messages && Array.isArray(output.messages)) {
+              const toolMsg = output.messages[output.messages.length - 1] as {
+                name?: string;
+                content?: string;
+              };
+              if (toolMsg?.name) {
+                setEvents((prev) => [
+                  ...prev,
+                  {
+                    type: "tool",
+                    content: `Tool: ${toolMsg.name}: ${String(toolMsg.content || "executed").slice(0, 80)}`,
+                    timestamp: new Date().toISOString(),
+                  },
+                ]);
+              }
+              continue;
+            }
+
+            // Handle agent messages (get the last AI message)
+            if (output.messages && Array.isArray(output.messages)) {
+              const lastMsg = output.messages[output.messages.length - 1] as {
+                type?: string;
+                content?: string | unknown[];
+              };
+              if (lastMsg?.content && lastMsg.type === "ai") {
+                const content =
+                  typeof lastMsg.content === "string" ? lastMsg.content : "";
+                if (content) {
+                  setEvents((prev) => [
+                    ...prev,
+                    {
+                      type: "message",
+                      content: `${nodeName}: ${content.slice(0, 120)}`,
+                      timestamp: new Date().toISOString(),
+                    },
+                  ]);
+                }
+              }
+            }
+
+            // Handle special state updates
+            if (output.verificationStatus) {
+              setEvents((prev) => [
+                ...prev,
+                {
+                  type: "agent",
+                  content: `Verification: ${output.verificationStatus as string}`,
+                  timestamp: new Date().toISOString(),
+                },
+              ]);
+            }
+
+            if (output.finalReport) {
+              setEvents((prev) => [
+                ...prev,
+                {
+                  type: "message",
+                  content: `Report ready (${String(output.finalReport).length} chars)`,
+                  timestamp: new Date().toISOString(),
+                },
+              ]);
+            }
           }
         }
-        
-        if (chunk.event === "messages") {
-          const messages = chunk.data as Array<{
-            content: string | Array<{ text: string }>;
-          }>;
-          messages.forEach((msg) => {
-            const content = 
-              typeof msg.content === 'string'
-                ? msg.content
-                : msg.content.map((m: any) => m.text || '').join('');
-            
-            setEvents(prev => [
-              ...prev,
-              {
-                type: "message",
-                content: content.slice(0, 200),
-                timestamp: new Date().toISOString(),
-              },
-            ]);
-          });
-        }
       }
-      
       setStatus("completed");
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Connection error";
-      
+
       // Graceful degradation if server not available
       console.error("LangGraph stream error:", err);
       setError(errorMessage);
       setEvents([
         {
           type: "error",
-          content: ` Failed to connect to LangGraph: ${errorMessage}`,
+          content: `Failed to connect to LangGraph: ${errorMessage}`,
         },
       ]);
       setStatus("error");

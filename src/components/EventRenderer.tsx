@@ -35,7 +35,7 @@ export default function EventRenderer({ events }: EventRendererProps) {
       {events.map((event, index) => {
         const style = getEventStyle(event.type);
         return (
-          <Box key={index}>
+          <Box key={`${event.timestamp || ''}-${index}`}>
             <Text color={style.color}>
               {style.prefix} {event.content}
             </Text>

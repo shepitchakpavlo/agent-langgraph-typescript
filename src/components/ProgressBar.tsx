@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Text, Box } from "ink";
 
 /**
@@ -39,8 +39,9 @@ export default function ProgressBar({
   startTime,
 }: ProgressBarProps) {
   const [position, setPosition] = useState(0);
-  const [direction, setDirection] = useState(1);
   const [elapsed, setElapsed] = useState(0);
+  // Use ref for direction to avoid recreating interval on every bounce
+  const directionRef = useRef(1);
 
   // Bouncing indicator animation: a highlighted segment moves
   // back and forth across the bar, creating a "Knight Rider" effect.
@@ -50,16 +51,16 @@ export default function ProgressBar({
     const segmentWidth = 3;
     const timer = setInterval(() => {
       setPosition((prev) => {
-        const next = prev + direction;
+        const next = prev + directionRef.current;
         if (next >= width - segmentWidth || next <= 0) {
-          setDirection((d) => d * -1);
+          directionRef.current *= -1;
         }
         return Math.max(0, Math.min(next, width - segmentWidth));
       });
     }, 100);
 
     return () => clearInterval(timer);
-  }, [active, direction, width]);
+  }, [active, width]);
 
   // Elapsed time counter — updates every second when a startTime is provided.
   useEffect(() => {
