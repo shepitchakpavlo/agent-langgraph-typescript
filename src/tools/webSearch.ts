@@ -1,6 +1,7 @@
 import { TavilySearch } from "@langchain/tavily";
 import { DynamicTool } from "@langchain/core/tools";
 import { CacheWrapper, withCache, CachedResult } from "../lib/cache";
+import { retry } from "../lib/retry";
 
 // Cache wrapper with 5-minute TTL for search results
 const searchCache = new CacheWrapper<CachedSearchResult>({ ttl: 300000 });
@@ -29,8 +30,23 @@ async function performSearch(query: string): Promise<CachedSearchResult> {
   };
 }
 
-// Wrap search function with caching
-const searchWithCache = withCache(searchCache, performSearch);
+// Search with retry logic for transient errors
+async function performSearchWithRetry(query: string): Promise<CachedSearchResult> {
+  return retry(
+    () => performSearch(query),
+    {
+      maxAttempts: 3,
+      initialDelay: 1000,
+      backoffMultiplier: 2,
+      onRetry: (attempt, error, delay) => {
+        console.log(`[WebSearch] Retry attempt ${attempt}/3 after ${Math.round(delay)}ms due to:`, error.message || error);
+      },
+    }
+  );
+}
+
+// Wrap search function with caching and retry
+const searchWithCache = withCache(searchCache, performSearchWithRetry);
 
 // Helper to format cache age
 function formatAge(ms: number): string {
