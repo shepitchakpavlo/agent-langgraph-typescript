@@ -6,8 +6,13 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
+    "build:ui": "npx esbuild src/cli.tsx --bundle --platform=node --format=esm --outfile=dist/cli.mjs '--external:@langchain/*' --external:yoga-layout --external:ink --external:react",
+    "ui": "node dist/cli.mjs",
     "dev": "npx @langchain/langgraph-cli dev",
     "test": "vitest run"
+  },
+  "bin": {
+    "research-cli": "./dist/cli.js"
   },
   "dependencies": {
     "@lancedb/lancedb": "^0.26.2",
@@ -17,15 +22,19 @@
     "@langchain/langgraph-sdk": "^1.6.5",
     "@langchain/openai": "^1.2.10",
     "@langchain/tavily": "^1.2.0",
+    "@types/react": "^19.2.14",
     "apache-arrow": "18.1.0",
     "dotenv": "^17.3.1",
+    "ink": "^6.8.0",
     "langchain": "^1.2.26",
+    "react": "^19.2.4",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@langchain/langgraph-cli": "^1.1.14",
     "@types/node": "^20.11.0",
     "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typescript": "^5.3.3",
     "vitest": "^4.0.18"
   },
