@@ -1,5 +1,11 @@
 # Dependencies
 node_modules/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -37,3 +43,6 @@ npm-debug.log*
 .langgraph_api
 
 data
+
+# Temporary analysis
+CODEBASE_ANALYSIS.md

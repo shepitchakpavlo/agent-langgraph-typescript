@@ -1,0 +1,16 @@
+# RAGAS Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Core RAGAS
+ragas
+
+# LLM providers
+openai>=1.0.0
+
+# Optional but recommended
+langchain-core>=0.2.0
+langchain-openai>=0.1.0
+
+# Utilities
+datasets>=2.14.0
+pandas>=1.5.0

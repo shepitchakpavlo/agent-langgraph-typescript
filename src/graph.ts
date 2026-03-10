@@ -5,9 +5,10 @@ import { researchAgent, analystAgent, supervisor, writerAgent, factCheckerAgent 
 import { webSearch } from "./tools/webSearch";
 import { queryMemoryTool } from "./tools/queryMemory";
 import { saveMemoryTool } from "./tools/saveMemory";
+import { evaluateRAGTool } from "./tools/ragasEvaluation";
 
-// Initialize the tool node with our search and memory tools
-const toolNode = new ToolNode([webSearch, queryMemoryTool, saveMemoryTool]);
+// Initialize the tool node with our search, memory, and evaluation tools
+const toolNode = new ToolNode([webSearch, queryMemoryTool, saveMemoryTool, evaluateRAGTool]);
 
 // Retry policy for LLM nodes (handles rate limits, transient errors)
 const llmRetryPolicy = {
