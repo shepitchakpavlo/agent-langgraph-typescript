@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest';
 import { spawn } from 'child_process';
 import { existsSync } from 'fs';
 import path from 'path';
+import { RAGAS_CONFIG } from '../config';
 import { RagasAdapter, evaluateRAGSample } from './adapter';
 import { evaluateRAGTool } from '../tools/ragasEvaluation';
 
@@ -97,9 +98,9 @@ describe('RAGAS Implementation', () => {
   describe('Direct Python Script Call', () => {
     it('spawns the Python evaluation script and parses its JSON output', async () => {
       const mockData = {
-        api_key: process.env.OPENROUTER_API_KEY ?? '',
-        model: 'deepseek/deepseek-chat-v3-0324',
-        baseURL: process.env.OPENROUTER_API_BASE ?? 'https://openrouter.ai/api/v1',
+        api_key: RAGAS_CONFIG.apiKey,
+        model: RAGAS_CONFIG.model,
+        baseURL: RAGAS_CONFIG.baseUrl,
         metrics: ['faithfulness'],
         samples: [
           {

@@ -48,6 +48,11 @@ yarn build
 yarn start
 ```
 
+### Run RAGAS Evaluation:
+```bash
+yarn eval
+```
+
 ## Project Structure
 
 - `src/index.ts`: Entry point with `app.invoke` and thread configuration.

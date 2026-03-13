@@ -5,6 +5,7 @@
  */
 
 import { RagasAdapter, evaluateRAG, evaluateRAGSample } from '../src/ragas/adapter';
+import { RAGAS_CONFIG } from '../src/config';
 
 /**
  * Example 1: Simple evaluation with convenience function
@@ -23,8 +24,8 @@ async function example1_simpleEvaluation() {
 
   try {
     const results = await evaluateRAGSample(sample, {
-      model: 'deepseek/deepseek-chat-v3-0324',  // OpenRouter DeepSeek model
-      metrics: ['faithfulness', 'answer_relevancy'],
+      model: RAGAS_CONFIG.model,  // Uses default from config.ts
+      metrics: [...RAGAS_CONFIG.defaultMetrics],
     });
 
     const adapter = new RagasAdapter();
@@ -61,7 +62,7 @@ async function example2_multipleSamples() {
 
   try {
     const results = await evaluateRAG(samples, {
-      model: 'deepseek/deepseek-chat-v3-0324',  // Use OpenRouter DeepSeek
+      model: RAGAS_CONFIG.model,  // Uses default from config.ts
       metrics: ['faithfulness', 'answer_relevancy', 'context_precision'],
     });
 
@@ -91,7 +92,7 @@ async function example3_withReferences() {
 
   try {
     const results = await evaluateRAGSample(sample, {
-      model: 'deepseek/deepseek-chat-v3-0324',  // Use OpenRouter DeepSeek
+      model: RAGAS_CONFIG.model,  // Uses default from config.ts
       metrics: ['faithfulness', 'answer_relevancy', 'context_precision', 'context_recall'],
     });
 
@@ -111,7 +112,7 @@ async function example4_langgraphIntegration() {
   import { evaluateRAGTool } from '../src/tools/ragasEvaluation';
   
   // Example usage within a LangGraph node
-  // Note: Automatically uses OPENROUTER_API_KEY and OPENROUTER_API_BASE from environment
+  // Note: Automatically uses config from config.ts (OPENCODE_GO_API_KEY, etc.)
   const evaluationResult = await evaluateRAGTool.invoke({
     question: 'What is the capital of France?',
     context: [
@@ -119,7 +120,7 @@ async function example4_langgraphIntegration() {
       'Paris is the capital city of France.',
     ],
     answer: 'Paris is the capital of France.',
-    // model is optional, defaults to deepseek/deepseek-chat-v3-0324
+    // model is optional, defaults to config.ts setting
     metrics: ['faithfulness', 'answer_relevancy'],
   });
 
@@ -154,7 +155,7 @@ async function example5_batchEvaluation() {
   try {
     console.log('Running batch evaluation...');
     const results = await evaluateRAG(testCases, {
-      model: 'deepseek/deepseek-chat-v3-0324',  // Use OpenRouter DeepSeek
+      model: RAGAS_CONFIG.model,  // Uses default from config.ts
       metrics: ['faithfulness', 'answer_relevancy'],
     });
 

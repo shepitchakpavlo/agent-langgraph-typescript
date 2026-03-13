@@ -16,24 +16,21 @@ from ragas.metrics._faithfulness import Faithfulness
 from ragas.metrics._answer_relevance import AnswerRelevancy
 from ragas.metrics._context_precision import ContextPrecision
 from ragas.metrics._context_recall import ContextRecall
-from ragas.llms import llm_factory
+from ragas.llms import LangchainLLMWrapper
 from ragas.embeddings import LangchainEmbeddingsWrapper
-from openai import AsyncOpenAI
-from langchain_openai import OpenAIEmbeddings as LangChainOpenAIEmbeddings
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings as LangChainOpenAIEmbeddings
 
 
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description="RAGAS Evaluation Script")
     parser.add_argument(
-        "--input-file",
-        type=str,
-        help="Path to JSON file containing evaluation data"
+        "--input-file", type=str, help="Path to JSON file containing evaluation data"
     )
     parser.add_argument(
         "--output-file",
         type=str,
-        help="Path to save evaluation results (optional, prints to stdout if not provided)"
+        help="Path to save evaluation results (optional, prints to stdout if not provided)",
     )
     return parser.parse_args()
 
@@ -41,7 +38,7 @@ def parse_args() -> argparse.Namespace:
 def read_input(input_file: Optional[str]) -> Dict[str, Any]:
     """Read input data from file or stdin."""
     if input_file:
-        with open(input_file, 'r') as f:
+        with open(input_file, "r") as f:
             return json.load(f)
     return json.loads(sys.stdin.read())
 
@@ -50,31 +47,39 @@ def get_config(input_data: Dict[str, Any]) -> Dict[str, Any]:
     """Extract configuration from input data with environment variable fallbacks."""
     api_key = (
         input_data.get("api_key")
+        or os.environ.get("OPENCODE_GO_API_KEY")
         or os.environ.get("OPENROUTER_API_KEY")
         or os.environ.get("OPENAI_API_KEY")
     )
-    base_url = input_data.get("baseURL") or os.environ.get("OPENROUTER_API_BASE")
+    base_url = (
+        input_data.get("baseURL")
+        or os.environ.get("OPENCODE_GO_API_BASE")
+        or os.environ.get("OPENROUTER_API_BASE")
+    )
 
     if not api_key:
         raise ValueError(
-            "API key must be provided via input or OPENROUTER_API_KEY/OPENAI_API_KEY environment variable"
+            "API key must be provided via input or OPENCODE_GO_API_KEY/OPENROUTER_API_KEY/OPENAI_API_KEY environment variable"
         )
 
     return {
         "api_key": api_key,
         "base_url": base_url,
-        "model": input_data.get("model", "deepseek/deepseek-chat-v3-0324"),
+        "model": input_data.get("model", "minimax-m2.5"),
         "metrics": input_data.get("metrics", ["faithfulness", "answer_relevancy"]),
     }
 
 
 def create_llm(config: Dict[str, Any]) -> Any:
     """Create and configure the LLM."""
-    llm_client = AsyncOpenAI(
-        api_key=config["api_key"],
-        base_url=config["base_url"] if config["base_url"] else None
-    )
-    return llm_factory(config["model"], provider="openai", client=llm_client)
+    kwargs = {
+        "model": config["model"],
+        "api_key": config["api_key"],
+    }
+    if config["base_url"]:
+        kwargs["base_url"] = config["base_url"]
+    langchain_llm = ChatOpenAI(**kwargs)
+    return LangchainLLMWrapper(langchain_llm)
 
 
 def create_embeddings(config: Dict[str, Any]) -> Any:
@@ -100,9 +105,9 @@ def create_metrics(llm: Any, embeddings: Any, metric_names: List[str]) -> List[A
     context_recall_metric = ContextRecall(llm=llm)
 
     # Set embeddings on context metrics
-    if hasattr(context_precision_metric, 'embeddings'):
+    if hasattr(context_precision_metric, "embeddings"):
         context_precision_metric.embeddings = embeddings
-    if hasattr(context_recall_metric, 'embeddings'):
+    if hasattr(context_recall_metric, "embeddings"):
         context_recall_metric.embeddings = embeddings
 
     metric_map = {
@@ -134,12 +139,16 @@ def prepare_dataset(input_data: Dict[str, Any]) -> EvaluationDataset:
     for sample in samples:
         eval_item = {
             "user_input": sample.get("question", sample.get("user_input", "")),
-            "retrieved_contexts": sample.get("context", sample.get("retrieved_contexts", [])),
+            "retrieved_contexts": sample.get(
+                "context", sample.get("retrieved_contexts", [])
+            ),
             "response": sample.get("answer", sample.get("response", "")),
         }
 
         if "reference" in sample or "ground_truth" in sample:
-            eval_item["reference"] = sample.get("reference", sample.get("ground_truth", ""))
+            eval_item["reference"] = sample.get(
+                "reference", sample.get("ground_truth", "")
+            )
 
         eval_data.append(eval_item)
 
@@ -155,12 +164,9 @@ def safe_float(val: Any) -> Optional[float]:
 
 def process_results(results: Any, metric_names: List[str]) -> Dict[str, Any]:
     """Convert RAGAS results to JSON-serializable dictionary."""
-    results_dict = {
-        "metrics": {},
-        "per_sample": []
-    }
+    results_dict = {"metrics": {}, "per_sample": []}
 
-    if not hasattr(results, 'to_pandas'):
+    if not hasattr(results, "to_pandas"):
         # Fallback for legacy format
         for key, value in results.items():
             results_dict["metrics"][key] = float(value)
@@ -186,10 +192,7 @@ def process_results(results: Any, metric_names: List[str]) -> Dict[str, Any]:
             if metric_name in df.columns:
                 sample_results[metric_name] = safe_float(row[metric_name])
 
-        results_dict["per_sample"].append({
-            "index": idx,
-            "scores": sample_results
-        })
+        results_dict["per_sample"].append({"index": idx, "scores": sample_results})
 
     return results_dict
 
@@ -199,7 +202,7 @@ def write_output(results_dict: Dict[str, Any], output_file: Optional[str]) -> No
     output_json = json.dumps(results_dict, indent=2)
 
     if output_file:
-        with open(output_file, 'w') as f:
+        with open(output_file, "w") as f:
             f.write(output_json)
         print(f"Results saved to {output_file}", file=sys.stderr)
     else:
@@ -222,7 +225,10 @@ def main():
     metrics = create_metrics(llm, embeddings, config["metrics"])
     dataset = prepare_dataset(input_data)
 
-    print(f"Running evaluation with {len(metrics)} metric(s) on {len(dataset)} sample(s)...", file=sys.stderr)
+    print(
+        f"Running evaluation with {len(metrics)} metric(s) on {len(dataset)} sample(s)...",
+        file=sys.stderr,
+    )
     results = evaluate(dataset=dataset, metrics=metrics)
 
     results_dict = process_results(results, config["metrics"])

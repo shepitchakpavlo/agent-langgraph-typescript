@@ -8,6 +8,7 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { RagasAdapter, RagasConfig, RagasSample } from '../ragas/adapter';
+import { RAGAS_CONFIG } from '../config';
 
 /**
  * Schema for the ragas_evaluation tool
@@ -32,11 +33,11 @@ export type RagasEvaluationInput = z.infer<typeof ragasEvaluationSchema>;
 export const evaluateRAGTool = tool(
   async (input: RagasEvaluationInput) => {
     try {
-      // Configure RAGAS
+      // Configure RAGAS (uses defaults from config.ts)
       const config: RagasConfig = {
-        api_key: input.apiKey || process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY,
-        model: input.model || 'deepseek/deepseek-chat-v3-0324',
-        metrics: input.metrics || ['faithfulness', 'answer_relevancy'],
+        api_key: input.apiKey || RAGAS_CONFIG.apiKey,
+        model: input.model || RAGAS_CONFIG.model,
+        metrics: input.metrics || [...RAGAS_CONFIG.defaultMetrics],
       };
 
       // Create sample for evaluation
@@ -57,13 +58,13 @@ export const evaluateRAGTool = tool(
       
       output += `Overall Metrics:\n`;
       for (const [metric, scores] of Object.entries(results.metrics)) {
-        output += `  ${metric}: ${scores.mean.toFixed(4)}\n`;
+        output += `  ${metric}: ${scores.mean !== null ? scores.mean.toFixed(4) : 'N/A'}\n`;
       }
       
       output += `\nPer-Sample Scores:\n`;
       if (results.per_sample.length > 0) {
         for (const [metric, score] of Object.entries(results.per_sample[0].scores)) {
-          output += `  ${metric}: ${score.toFixed(4)}\n`;
+          output += `  ${metric}: ${score !== null ? score.toFixed(4) : 'N/A'}\n`;
         }
       }
 
@@ -101,9 +102,9 @@ export async function evaluateRAGOutput(input: RagasEvaluationInput): Promise<{
   lowScores?: string[];
 }> {
   const config: RagasConfig = {
-    api_key: input.apiKey || process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY,
-    model: input.model || 'deepseek/deepseek-chat-v3-0324',
-    metrics: input.metrics || ['faithfulness', 'answer_relevancy'],
+    api_key: input.apiKey || RAGAS_CONFIG.apiKey,
+    model: input.model || RAGAS_CONFIG.model,
+    metrics: input.metrics || [...RAGAS_CONFIG.defaultMetrics],
   };
 
   const sample: RagasSample = {
@@ -119,7 +120,7 @@ export async function evaluateRAGOutput(input: RagasEvaluationInput): Promise<{
   // Identify low scores
   const lowScores: string[] = [];
   for (const [metric, scores] of Object.entries(results.metrics)) {
-    if (scores.mean < 0.7) {
+    if (scores.mean !== null && scores.mean < 0.7) {
       lowScores.push(metric);
     }
   }

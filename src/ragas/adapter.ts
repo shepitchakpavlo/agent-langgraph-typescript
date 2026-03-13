@@ -10,6 +10,7 @@ import { promisify } from 'util';
 import { writeFile, readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
+import { RAGAS_CONFIG } from '../config';
 
 const exec = promisify(require('child_process').exec);
 
@@ -43,10 +44,10 @@ export interface RagasSample {
  * Individual metric score
  */
 export interface RagasMetricScores {
-  mean: number;
-  std: number | null;  // null when only one sample
-  min: number;
-  max: number;
+  mean: number | null;
+  std: number | null;
+  min: number | null;
+  max: number | null;
 }
 
 /**
@@ -54,7 +55,7 @@ export interface RagasMetricScores {
  */
 export interface RagasSampleResult {
   index: number;
-  scores: Record<RagasMetric, number>;
+  scores: Record<RagasMetric, number | null>;
 }
 
 /**
@@ -69,13 +70,13 @@ export interface RagasEvaluationResults {
  * Configuration options for RAGAS evaluation
  */
 export interface RagasConfig {
-  /** API key for LLM provider (OPENROUTER_API_KEY or OPENAI_API_KEY env var) */
+  /** API key for LLM provider (defaults to OPENCODE_GO_API_KEY) */
   api_key?: string;
   
-  /** Model to use for evaluation (default: deepseek/deepseek-chat-v3-0324) */
+  /** Model to use for evaluation (default from config.ts) */
   model?: string;
   
-  /** Base URL for LLM provider (e.g., OpenRouter) */
+  /** Base URL for LLM provider (default from config.ts) */
   baseURL?: string;
   
   /** Metrics to evaluate */
@@ -99,18 +100,18 @@ export class RagasAdapter {
   private scriptPath: string;
 
   constructor(config: RagasConfig = {}) {
-    // Detect venv Python path
+// Detect venv Python path
     const projectRoot = path.resolve(__dirname, '../..');
     const venvPython = path.join(projectRoot, '.venv/bin/python3');
     const defaultPython = existsSync(venvPython) ? venvPython : 'python3';
 
-    // Set default configuration
+    // Set default configuration from central config
     this.config = {
-      api_key: config.api_key || process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY || '',
-      model: config.model || 'deepseek/deepseek-chat-v3-0324',
-      baseURL: config.baseURL || process.env.OPENROUTER_API_BASE || '',
-      metrics: config.metrics || ['faithfulness', 'answer_relevancy'],
-      timeout: config.timeout || 60,
+      api_key: config.api_key || RAGAS_CONFIG.apiKey,
+      model: config.model || RAGAS_CONFIG.model,
+      baseURL: config.baseURL || RAGAS_CONFIG.baseUrl,
+      metrics: config.metrics || [...RAGAS_CONFIG.defaultMetrics],
+      timeout: config.timeout || RAGAS_CONFIG.timeout,
       pythonPath: config.pythonPath || defaultPython,
     };
 
@@ -273,10 +274,10 @@ export class RagasAdapter {
     output += '-'.repeat(40) + '\n';
     for (const [metric, scores] of Object.entries(results.metrics)) {
       output += `${metric}:\n`;
-      output += `  Mean: ${scores.mean.toFixed(4)}\n`;
+      output += `  Mean: ${scores.mean !== null ? scores.mean.toFixed(4) : 'N/A'}\n`;
       output += `  Std:  ${scores.std !== null ? scores.std.toFixed(4) : 'N/A'}\n`;
-      output += `  Min:  ${scores.min.toFixed(4)}\n`;
-      output += `  Max:  ${scores.max.toFixed(4)}\n\n`;
+      output += `  Min:  ${scores.min !== null ? scores.min.toFixed(4) : 'N/A'}\n`;
+      output += `  Max:  ${scores.max !== null ? scores.max.toFixed(4) : 'N/A'}\n\n`;
     }
 
     output += '\nPer-Sample Results:\n';
@@ -284,7 +285,7 @@ export class RagasAdapter {
     for (const sampleResult of results.per_sample) {
       output += `Sample ${sampleResult.index}:\n`;
       for (const [metric, score] of Object.entries(sampleResult.scores)) {
-        output += `  ${metric}: ${score.toFixed(4)}\n`;
+        output += `  ${metric}: ${score !== null ? score.toFixed(4) : 'N/A'}\n`;
       }
       output += '\n';
     }

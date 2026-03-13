@@ -9,7 +9,8 @@
     "build:ui": "npx esbuild src/cli.tsx --bundle --platform=node --format=esm --outfile=dist/cli.mjs '--external:@langchain/*' --external:yoga-layout --external:ink --external:react",
     "ui": "node dist/cli.mjs",
     "dev": "npx @langchain/langgraph-cli dev",
-    "test": "vitest run"
+    "test": "vitest run",
+    "eval": "tsx src/run-evaluation.ts"
   },
   "bin": {
     "research-cli": "./dist/cli.js"
