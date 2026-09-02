@@ -25,9 +25,7 @@ export function useLangGraphStream({
   input = {},
 }: UseLangGraphStreamProps = {}): UseLangGraphStreamReturn {
   const [events, setEvents] = useState<StreamEvent[]>([]);
-  const [status, setStatus] = useState<
-    "idle" | "loading" | "active" | "completed" | "error"
-  >("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "active" | "completed" | "error">("idle");
   const [error, setError] = useState<string | undefined>();
   const [startTime, setStartTime] = useState<Date | undefined>();
 
@@ -48,21 +46,17 @@ export function useLangGraphStream({
       const thread = await Promise.race([
         threadPromise,
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Connection timeout")), 5000),
+          setTimeout(() => reject(new Error("Connection timeout")), 5000)
         ),
       ]);
 
       setStatus("active");
 
       // Stream events from LangGraph
-      const streamResponse = await client.runs.stream(
-        thread.thread_id,
-        assistantId,
-        {
-          input,
-          streamMode: ["updates"],
-        },
-      );
+      const streamResponse = await client.runs.stream(thread.thread_id, assistantId, {
+        input,
+        streamMode: ["updates"],
+      });
 
       for await (const chunk of streamResponse) {
         // Small delay to allow React/Ink to re-render between updates
@@ -91,11 +85,7 @@ export function useLangGraphStream({
             }
 
             // Handle tool results
-            if (
-              nodeName === "tools" &&
-              output.messages &&
-              Array.isArray(output.messages)
-            ) {
+            if (nodeName === "tools" && output.messages && Array.isArray(output.messages)) {
               const toolMsg = output.messages[output.messages.length - 1] as {
                 name?: string;
                 content?: string;
@@ -162,8 +152,7 @@ export function useLangGraphStream({
       }
       setStatus("completed");
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Connection error";
+      const errorMessage = err instanceof Error ? err.message : "Connection error";
 
       // Graceful degradation if server not available
       console.error("LangGraph stream error:", err);
