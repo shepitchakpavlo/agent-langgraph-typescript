@@ -6,6 +6,7 @@ node_modules/
 __pycache__/
 *.pyc
 .pytest_cache/
+.ruff_cache/
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -18,9 +19,10 @@ package-lock.json
 # Build output
 dist/
 
-# Environment variables
+# Environment variables (all variants except the committed template)
 .env
-.env.local
+.env.*
+!.env.example
 
 # IDE
 .idea/
@@ -46,3 +48,5 @@ data
 
 # Temporary analysis
 CODEBASE_ANALYSIS.md
+OPTIMIZATION_LOG.md
+OPTIMIZATION_PROMPT.md
