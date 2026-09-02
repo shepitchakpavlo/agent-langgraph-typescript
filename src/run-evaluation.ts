@@ -97,25 +97,17 @@ async function runInParallel(
   concurrency: number
 ): Promise<EvaluationResult[]> {
   const results: EvaluationResult[] = [];
-  const executing: Promise<EvaluationResult>[] = [];
 
-  for (let i = 0; i < samples.length; i++) {
-    const promise = processSample(samples[i], i, ragasAdapter).then((result) => {
-      results.push(result);
-      return result;
-    });
-    executing.push(promise);
-
-    if (executing.length >= concurrency) {
-      await Promise.race(executing);
-      executing.splice(
-        executing.findIndex((p) => p === promise),
-        1
-      );
-    }
+  for (let i = 0; i < samples.length; i += concurrency) {
+    const batch = samples.slice(i, i + concurrency);
+    const batchResults = await Promise.all(
+      batch.map((sample, batchIndex) => 
+        processSample(sample, i + batchIndex, ragasAdapter)
+      )
+    );
+    results.push(...batchResults);
   }
 
-  await Promise.all(executing);
   return results.sort((a, b) => a.index - b.index);
 }
 

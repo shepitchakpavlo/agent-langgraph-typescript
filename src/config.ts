@@ -16,9 +16,9 @@ export const MODEL_CONFIG = {
   // Alternative model for comparisons (e.g., model_comparison experiments)
   COMPARISON_MODEL: 'openai/gpt-4o-mini',
   
-  // Model for RAGAS evaluation from OpenCode Go (cost-effective: 20K req/5hrs)
-  // MiniMax M2.5 returns JSON in content field (works with RAGAS)
-  EVALUATION_MODEL: 'minimax-m2.5',
+  // Model for RAGAS evaluation via OpenRouter (reliable OpenAI-compatible API)
+  // Using openai/gpt-4o-mini for cost-effectiveness and reliability
+  EVALUATION_MODEL: 'openai/gpt-4o-mini',
   
   // Default metrics for RAGAS evaluation
   DEFAULT_METRICS: ['faithfulness', 'answer_relevancy', 'context_precision', 'context_recall'] as const,
@@ -38,12 +38,12 @@ function getAgentApiBaseUrl(): string {
 }
 
 function getEvaluationApiKey(): string {
-  // MiniMax M2.5 via OpenCode Go for evaluation (most cost-effective)
-  return process.env.OPENCODE_GO_API_KEY || process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY || '';
+  // OpenRouter for evaluation (reliable OpenAI-compatible API)
+  return process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY || '';
 }
 
 function getEvaluationApiBaseUrl(): string {
-  return process.env.OPENCODE_GO_API_BASE || 'https://opencode.ai/zen/go/v1';
+  return process.env.OPENROUTER_API_BASE || 'https://openrouter.ai/api/v1';
 }
 
 // Unified API config for general use (prefers OpenRouter for DeepSeek)
