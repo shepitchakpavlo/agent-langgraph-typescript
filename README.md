@@ -11,6 +11,31 @@ The application uses **LangGraph** to orchestrate a research workflow:
 4.  **Fact-Checker Agent**: Verifies claims against the retrieved research.
 5.  **Writer Agent**: Produces the final grounded report.
 
+## Example Output
+
+**Input:** `"What is LangGraph and how does it differ from LangChain?"`
+
+**Agent trace:**
+```
+[supervisor]  → routes to researchAgent
+[research]    → web_search("LangGraph vs LangChain") via Tavily
+               → queryMemory (LanceDB, no prior context)
+[analyst]     → synthesizes 3 results into structured JSON
+[fact-checker]→ verifies 4 claims against retrieved context
+[writer]      → produces final grounded report
+```
+
+**RAGAS evaluation scores** (from `evaluation-report.json`):
+
+| Metric | Score |
+|---|---|
+| Faithfulness | 0.86 |
+| Answer Relevancy | 0.93 |
+| Context Precision | 0.83 (avg) |
+| Context Recall | 0.88 (avg) |
+
+Full evaluation: see [`EVALUATION.md`](./EVALUATION.md) and [`evaluation-report.json`](./evaluation-report.json).
+
 ## Prerequisites
 
 - Node.js 18+
